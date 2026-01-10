@@ -506,7 +506,11 @@
         } else {
           const url = URL.createObjectURL(file);
           const img = new Image();
-          await new Promise(r => img.onload = r); img.src = url;
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = () => reject(new Error('图片加载失败'));
+            img.src = url;
+          });
           addPage(url, 0); // Simple image
         }
       } catch (e) {
@@ -757,8 +761,11 @@
     // --- Exports ---
     async function getBaseImage(page) {
       const img = new Image();
-      img.src = page.src;
-      await new Promise(r => img.onload = r);
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = page.src;
+      });
       return img;
     }
 
