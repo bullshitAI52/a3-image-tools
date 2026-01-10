@@ -1,1265 +1,810 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <meta name="format-detection" content="email=no">
-    <meta name="format-detection" content="telephone=no">
-    <meta name="renderer" content="webkit">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
-    <meta name="author" content="Jack.Chan">
-    <meta name="baidu-site-verification" content="codeva-0w1RnnXvkG" />
-
-    <title>拼图 - 拼图制作</title>
-    <meta name="keywords" content="在线拼图,拼接长图,长图生成器, 合并图片, 长图, 拼接图片, 合并图片, 切割图片">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片拼图与切割工具</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        html,
-        body {
+        :root {
+            --primary-bg: #1a1a2e;
+            --secondary-bg: #16213e;
+            --accent-color: #0f3460;
+            --highlight-color: #e94560;
+            --text-color: #f0f0f0;
+            --card-bg: rgba(22, 33, 62, 0.95);
+        }
+
+        * {
             margin: 0;
             padding: 0;
-        }
-
-        html {
-            background-color: rgb(14, 14, 14);
-            background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0Ij4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLmNscy0xIHsKICAgICAgICBmaWxsOiAjMzAzMDMwOwogICAgICB9CgogICAgICAuY2xzLTIgewogICAgICAgIGZpbGw6ICMyMDIwMjA7CiAgICAgIH0KICAgIDwvc3R5bGU+CiAgPC9kZWZzPgogIDxyZWN0IGlkPSJsdCIgY2xhc3M9ImNscy0xIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiLz4KICA8cmVjdCBpZD0icmIiIGNsYXNzPSJjbHMtMSIgeD0iMzIiIHk9IjMyIiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiLz4KICA8cmVjdCBpZD0ibGIiIGNsYXNzPSJjbHMtMiIgeT0iMzIiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIvPgogIDxyZWN0IGlkPSJydCIgY2xhc3M9ImNscy0yIiB4PSIzMiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIi8+Cjwvc3ZnPgo=);
-            background-attachment: fixed;
-        }
-
-        body,
-        button {
-            font-size: 16px;
+            box-sizing: border-box;
         }
 
         body {
-            color: #fff;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--primary-bg) 0%, #0f0f1a 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        html,
-        body,
-        body * {
-            -webkit-box-sizing: border-box;
-            box-sizing: border-box;
-            -webkit-user-drag: none;
-            user-select: none;
+        header {
+            background: rgba(15, 52, 96, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
-       .droper {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            bottom: 10px;
-            left: 10px;
-            z-index: 99999;
-            outline: 10px #000 solid;
-            border: 2px #0f87dc dashed;
-            border-radius: 10px;
-            background-color: rgba(255, 255, 255, .35);
-            display: none;
-        }
-
-       .droper:before {
-            content: attr(data-text);
-            display: block;
-            font-style: italic;
-            font-size: 26px;
-            color: #0f87dc;
-            width: 300px;
-            height: 50px;
-            text-align: center;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            margin-top: -25px;
-            margin-left: -150px;
-        }
-
-       .droper.active {
-            display: block;
-        }
-
-       .wrapper {
-            padding: 30px;
-        }
-
-       .form-field-result {
-            padding-bottom: 120px;
-        }
-
-       .form-field-result a {
-            color: #fff;
-            font-size: 18px;
+        header h2 {
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             font-weight: 600;
         }
 
-       .form-field-result img {
-            max-width: 100%;
-            display: inline-block;
+        .container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
         }
 
-       .title {
-            display: none;
-        }
-
-       .form-group {
-            clear: both;
-            padding-bottom: 15px;
-        }
-
-       .form-group:after {
-            content: "\20";
-            clear: both;
-            display: block;
-            width: 0;
-            height: 0;
-        }
-
-       .form-group .form-label,
-       .form-group .form-field {
-            min-height: 28px;
-        }
-
-       .form-group .form-label {
-            float: left;
-            width: 60px;
-            padding-right: 10px;
-        }
-
-       .form-group .form-field {
-            margin-left: 60px;
-        }
-
-       .form-group .form-field label {
-            display: inline-block;
-            word-break: keep-all;
-            white-space: nowrap;
-            padding: 2px;
-        }
-
-       .btn {
-            color: #333;
-            position: relative;
-            display: inline-block;
-            vertical-align: middle;
-            background-color: #fff;
-            border-radius: 5px;
-            padding: 10px 25px;
-            border: 1px #eee solid;
-            cursor: pointer;
-        }
-
-       .btn:hover {
-            background-color: #eee;
-        }
-
-       .btn:active {
-            background-color: #ccc;
-        }
-
-       .btn.btn-choose {
-            padding-left: 15px;
-            padding-right: 15px;
-            color: #fff;
-            background: rgba(40, 120, 255, 1);
-        }
-
-       .btn.btn-choose:hover {
-            color: #fff;
-            background: rgba(40, 120, 255, 0.85);
-        }
-
-       .btn.btn-choose:active {
-            color: #fff;
-            background: rgba(40, 120, 255, 0.65);
-        }
-
-       .btn-add-file {
-            position: relative;
-            display: inline-block;
+        /* 统一面板样式 */
+        .panel {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
         }
 
-       .btn-add-file .btn {
-            padding: 10px 23px;
+        .panel-header {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #8a8a9b;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-       .btn-add-file input[type="file"] {
-            position: absolute;
-            top: -10px;
-            left: -10px;
-            bottom: -10px;
-            z-index: 3;
-            cursor: pointer;
-            font-size: 99px;
-            opacity: 0;
+        .panel-body {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
         }
 
-       .list-files {
-            margin: 0 0 20px 0;
-            display: block;
-        }
-
-       .list-files li {
-            margin-bottom: 5px;
+        /* 模式切换 Tab */
+        .mode-tabs {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
             padding: 5px;
-            border-radius: 3px;
-        }
-
-       .list-files li+li {}
-
-       .list-files li:hover {
-            background-color: rgba(255, 255, 255, 0.15);
-        }
-
-       .text-filename,
-       .icon-action {
-            display: inline-block;
-            vertical-align: middle;
-        }
-
-       .text-filename {
-            word-break: keep-all;
-            white-space: nowrap;
-        }
-
-       .icon-action {
-            width: 24px;
-            height: 24px;
-            margin-right: 10px;
-            border-radius: 3px;
-            position: relative;
-            cursor: pointer;
-        }
-
-       .icon-action:hover {
-            background-color: #03a9f4;
-        }
-
-       .icon-remove {}
-
-       .icon-remove:hover {
-            background-color: #f44336;
-        }
-
-       .icon-remove:before,
-       .icon-remove:after {
-            content: "\20";
-            display: block;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 16px;
-            height: 2px;
-            margin-top: -1px;
-            margin-left: -8px;
-            background-color: #fff;
-        }
-
-       .icon-remove:before {
-            transform: rotate(45deg);
-        }
-
-       .icon-remove:after {
-            transform: rotate(-45deg);
-        }
-
-       .icon-move:hover {
-            background-color: #4caf50;
-        }
-
-       .icon-move:before {
-            content: "\20";
-            display: block;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 10px;
-            height: 10px;
-            border-style: solid;
-            border-color: #fff;
-            transform: rotate(-45deg);
-            margin-left: -6px;
-        }
-
-       .icon-move-up:before {
-            margin-top: -3px;
-            border-width: 2px 2px 0 0;
-        }
-
-       .icon-move-down:before {
-            margin-top: -9px;
-            border-width: 0 0 2px 2px;
-        }
-
-       .mode-switch {
+            border-radius: 8px;
             margin-bottom: 20px;
         }
 
-       .mode-switch label {
-            margin-right: 10px;
+        .mode-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s;
+            opacity: 0.6;
+            font-weight: 600;
         }
 
-       #cutting-options {
-            display: none;
+        .mode-tab.active {
+            background: var(--highlight-color);
+            opacity: 1;
+            box-shadow: 0 2px 10px rgba(233, 69, 96, 0.3);
         }
 
-       #cutting-options input {
-            margin-right: 10px;
+        /* 控件样式 */
+        .control-group {
+            margin-bottom: 20px;
         }
 
-       #cutting-canvas {
-            display: none;
-            border: 1px solid #fff;
-            margin-top: 20px;
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        .radio-label:hover {
+            opacity: 1;
+        }
+
+        input[type="radio"] {
+            accent-color: var(--highlight-color);
+            transform: scale(1.1);
+        }
+
+        input[type="number"] {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            color: white;
+            font-size: 1rem;
+        }
+
+        /* 文件上传 */
+        .drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .drop-zone:hover {
+            border-color: var(--highlight-color);
+            background: rgba(233, 69, 96, 0.05);
+        }
+
+        .drop-zone i {
+            font-size: 2.5rem;
+            color: #8a8a9b;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        /* 图片列表 */
+        .image-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .image-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+
+        .image-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .image-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            overflow: hidden;
+        }
+
+        .image-thumb {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .image-name {
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+
+        .image-actions {
+            display: flex;
+            gap: 5px;
+            opacity: 0.6;
+        }
+
+        .image-item:hover .image-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px;
+            transition: color 0.2s;
+        }
+
+        .action-btn:hover {
+            color: var(--highlight-color);
+        }
+
+        /* 按钮 */
+        .btn {
+            background: var(--highlight-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: #ff5772;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(233, 69, 96, 0.4);
+        }
+
+        .btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: none;
+        }
+
+        /* 右侧预览区 */
+        .preview-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 20px;
             position: relative;
         }
 
-       .guide-line {
-            position: absolute;
-            background-color: rgba(255, 0, 0, 0.5);
-            z-index: 10;
-            cursor: col-resize;
+        #preview-img {
+            max-width: 100%;
+            max-height: 600px;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            display: none;
         }
 
-       .guide-line.vertical {
-            width: 2px;
-            height: 100%;
-            top: 0;
-        }
-
-       .guide-line.horizontal {
-            height: 2px;
+        /* 结果列表 (切割模式) */
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
             width: 100%;
-            left: 0;
         }
 
-       .cut-preview {
-            position: absolute;
-            background-color: rgba(0, 0, 0, 0.3);
-            z-index: 5;
+        .result-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
         }
 
-       .cut-handle {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background-color: red;
-            border-radius: 50%;
-            z-index: 20;
-            cursor: move;
-            transform: translate(-50%, -50%);
+        .result-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: contain;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .result-link {
+            display: block;
+            color: var(--highlight-color);
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .result-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 
-<body id="body">
-    <div class="wrapper">
-        <h2>
-            <span style="margin-right: 10px;">拼图 / 切割图片</span>
-            <small style="word-break: keep-all;white-space: nowrap;">纵横拼图 & 图片切割</small>
-        </h2>
-        <h3 style="font-size: 0;">在线拼图, 拼接长图, 长图生成器, 合并图片, 长图, 拼接图片, 合并图片, 切割图片</h3>
-        <div class="mode-switch">
-            <label><input type="radio" name="mode" value="combine" checked> 拼图</label>
-            <label><input type="radio" name="mode" value="cut"> 切割</label>
-        </div>
-        <div>
-            <h3 class="title">在线拼图, 拼接长图, 长图生成器, 合并图片, 长图, 拼接图片, 合并图</h3>
-            <form name="form-combine" id="form-combine" onsubmit="return onSubmit(event)">
-                <div class="form-group">
-                    <label class="form-label">模式</label>
-                    <div class="form-field">
-                        <label><input type="radio" name="orientation" checked="checked" value="vertically">纵向(垂直)</label>&nbsp;&nbsp;&nbsp;
-                        <label><input type="radio" name="orientation" value="horizontally">横向(水平)</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">格式</label>
-                    <div class="form-field">
-                        <label><input type="radio" name="mimetype" onclick="change(this, 'mimetype')" checked="checked" value="image/jpeg">JPEG</label>&nbsp;&nbsp;&nbsp;
-                        <label><input type="radio" name="mimetype" onclick="change(this, 'mimetype')" value="image/png">PNG</label>
-                    </div>
-                </div>
-                <div class="form-group" id="form-group-quality">
-                    <label class="form-label">质量</label>
-                    <div class="form-field">
-                        <label><input type="radio" name="quality" value="0.92">最佳</label>&nbsp;&nbsp;&nbsp;
-                        <label><input type="radio" name="quality" checked="checked" value="0.8">非常高</label>&nbsp;&nbsp;&nbsp;
-                        <label><input type="radio" name="quality" value="0.65">高</label>&nbsp;&nbsp;&nbsp;
-                        <label><input type="radio" name="quality" value="0.46">中</label>&nbsp;&nbsp;&nbsp;
-                        <label><input type="radio" name="quality" value="0.35">低</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">每行图片数</label>
-                    <div class="form-field">
-                        <input type="number" id="imagesPerRow" value="2" min="1">
-                        <label><input type="checkbox" id="enableImagesPerRow"> 启用</label>
-                    </div>
-                </div>
-                <div id="cutting-options">
-                    <div class="form-group">
-                        <label class="form-label">切割方式</label>
-                        <div class="form-field">
-                            <label><input type="radio" name="cuttingType" value="vertical" checked> 垂直切割</label>&nbsp;&nbsp;&nbsp;
-                            <label><input type="radio" name="cuttingType" value="horizontal"> 水平切割</label>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">切割份数</label>
-                        <div class="form-field">
-                            <input type="number" id="cuttingCount" value="2" min="2" max="10">
-                            <button type="button" class="btn" id="applyCuttingCount">应用 (单张图预览)</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">文件</label>
-                    <div class="form-field">
-                        <ol class="list-files" id="list-files"></ol>
-                        <p>
-                            <button type="button" id="btn-choose" class="btn btn-choose">+&nbsp;选择&nbsp;/&nbsp;拖拽&nbsp;/&nbsp;粘贴&nbsp;文件至此</button>
-                        </p>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">&nbsp;</label>
-                    <div class="form-field">
-                        <button type="submit" class="btn" id="btn-submit">执行</button>&nbsp;&nbsp;&nbsp;
-                        <button type="reset" class="btn" id="btn-reset">重置</button>
-                    </div>
-                </div>
-                <div class="form-group" id="result"></div>
-            </form>
-        </div>
-        <canvas id="cutting-canvas"></canvas>
-        <h3 class="title">在线拼接图片</h3>
+<body>
+    <header>
+        <h2><i class="fas fa-shapes"></i> 图片拼图 & 切割 <span
+                style="font-size:0.8rem; opacity:0.6; font-weight:400; margin-left:10px">v2.0</span></h2>
+    </header>
 
+    <div class="container">
+        <!-- 左侧设置 -->
+        <div class="panel">
+            <div class="panel-header">工具箱</div>
+            <div class="panel-body">
+                <div class="mode-tabs">
+                    <div class="mode-tab active" onclick="switchMode('combine')">🧩 拼长图</div>
+                    <div class="mode-tab" onclick="switchMode('cut')">✂️ 切图片</div>
+                </div>
+
+                <!-- 上传区 -->
+                <div class="drop-zone" onclick="document.getElementById('file-input').click()">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <div>点击或拖拽图片</div>
+                    <div style="font-size:0.8rem; opacity:0.6; margin-top:5px">支持 PNG, JPG, JPEG</div>
+                    <input type="file" id="file-input" multiple accept="image/*" style="display:none"
+                        onchange="handleFiles(this.files)">
+                </div>
+
+                <ul id="image-list" class="image-list"></ul>
+                <div style="text-align:right; margin-bottom:20px; font-size:0.85rem; opacity:0.6" id="file-count">0 张图片
+                </div>
+
+                <!-- 拼图设置 -->
+                <div id="combine-settings">
+                    <div class="control-group">
+                        <label>拼接方向</label>
+                        <div class="radio-group">
+                            <label class="radio-label"><input type="radio" name="direction" value="vertical" checked> 纵向
+                                (长图)</label>
+                            <label class="radio-label"><input type="radio" name="direction" value="horizontal">
+                                横向</label>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>每行图片数 (网格拼接)</label>
+                        <input type="number" id="cols" value="1" min="1">
+                    </div>
+                </div>
+
+                <!-- 切割设置 -->
+                <div id="cut-settings" style="display:none">
+                    <div class="control-group">
+                        <label>切割方向</label>
+                        <div class="radio-group">
+                            <label class="radio-label"><input type="radio" name="cut-dir" value="vertical" checked> 垂直切割
+                                (切成几段)</label>
+                            <label class="radio-label"><input type="radio" name="cut-dir" value="horizontal">
+                                水平切割</label>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>切割份数</label>
+                        <input type="number" id="cut-count" value="2" min="2" max="50">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>输出质量 (JPEG)</label>
+                    <div class="radio-group" style="font-size:0.9rem">
+                        <label class="radio-label"><input type="radio" name="quality" value="0.95" checked> 最佳</label>
+                        <label class="radio-label"><input type="radio" name="quality" value="0.8"> 高</label>
+                        <label class="radio-label"><input type="radio" name="quality" value="0.6"> 中</label>
+                    </div>
+                </div>
+
+                <button id="action-btn" class="btn" onclick="processImages()">
+                    <i class="fas fa-magic"></i> 开始生成
+                </button>
+                <button id="reset-btn" class="btn btn-secondary" onclick="resetAll()">
+                    <i class="fas fa-undo"></i> 重置所有
+                </button>
+            </div>
+        </div>
+
+        <!-- 右侧预览 -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>预览与结果</span>
+                <button id="download-zip-btn" class="action-btn" style="font-size:0.9rem; display:none"
+                    onclick="downloadZip()">
+                    <i class="fas fa-file-archive"></i> 打包下载 (ZIP)
+                </button>
+            </div>
+            <div class="panel-body preview-content" id="preview-area">
+                <div style="text-align:center; opacity:0.3">
+                    <i class="fas fa-image" style="font-size:4rem; margin-bottom:20px"></i>
+                    <p>等待处理...</p>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <div class="droper" id="droper" data-text="将文件拖放到这里"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <script>
-        var IMAGES = [];
-        var PROCESSED_FILES = []; // 用于存储处理后的图片文件 (Blob)
-        var $form = document.querySelector('#form-combine');
-        var $btnChoose = document.querySelector('#btn-choose');
-        var $btnSubmit = document.querySelector('#btn-submit');
-        var $btnReset = document.querySelector('#btn-reset');
-        var $list = document.querySelector('#list-files');
-        var $result = document.querySelector('#result');
-        var $droper = document.querySelector('#droper');
-        var $enableImagesPerRow = document.querySelector('#enableImagesPerRow');
-        var $imagesPerRow = document.querySelector('#imagesPerRow');
-        var $cuttingOptions = document.querySelector('#cutting-options');
-        var $cuttingCanvas = document.querySelector('#cutting-canvas');
-        var $modeRadios = document.querySelectorAll('input[name="mode"]');
-        var $cuttingCount = document.querySelector('#cuttingCount');
-        var $applyCuttingCount = document.querySelector('#applyCuttingCount');
-        var $cuttingTypeRadios = document.querySelectorAll('input[name="cuttingType"]');
+        let currentMode = 'combine'; // combine | cut
+        let images = []; // { id, file, src, width, height }
+        let processedResults = []; // { blob, name, url }
 
-        // 切割相关变量
-        var cuttingCanvas = $cuttingCanvas;
-        var cuttingContext = cuttingCanvas.getContext('2d');
-        var guideLines = []; // 参考线
-        var isDragging = false;
-        var draggingIndex = -1;
-        var currentImage = null;
-        var cuttingType = 'vertical'; // 默认垂直切割
+        // --- 模式切换 ---
+        function switchMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-tab').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
 
-        // 通用事件代理函数 (保持不变)
-        function delegateEvent(element, event, arguments, selector, eventHandler) {
-            if (event.target) {
-                var selectorTagName = '';
-                if (typeof(selector) === 'object' && selector.length === undefined) {
-                    selectorTagName = selector.tagName.toLowerCase();
-                    if (selector.getAttribute('id')) {
-                        selector = '#' + selector.getAttribute('id');
-                    } else if (selector.getAttribute('class')) {
-                        var selector = selector.getAttribute('class').split(' ')[0];
-                        selector = selector ? '.' + selector : null;
-                    }
-                    selector = selector || selectorTagName;
-                }
-                if (selector && typeof(selector) === 'string') {
-                    var ROOT_SELECTORS = {
-                        'document': 1,
-                        'html': 1,
-                        'head': 1,
-                        'body': 1
+            document.getElementById('combine-settings').style.display = mode === 'combine' ? 'block' : 'none';
+            document.getElementById('cut-settings').style.display = mode === 'cut' ? 'block' : 'none';
+
+            // 更新按钮文案
+            document.querySelector('#action-btn').innerHTML =
+                mode === 'combine' ? '<i class="fas fa-puzzle-piece"></i> 开始拼图' : '<i class="fas fa-cut"></i> 开始切割';
+
+            // 如果只有一张图且切到切割模式，自动提示
+            if (mode === 'cut' && images.length > 1) {
+                alert('提示：切割模式下通常只处理第一张图片，或请先清空列表只上传一张。');
+            }
+        }
+
+        // --- 文件处理 ---
+        function handleFiles(fileList) {
+            const newFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+            if (newFiles.length === 0) return;
+
+            let loadedCount = 0;
+            newFiles.forEach(f => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        images.push({
+                            id: Date.now() + Math.random(),
+                            file: f,
+                            src: e.target.result,
+                            width: img.width,
+                            height: img.height,
+                            imgObj: img
+                        });
+                        loadedCount++;
+                        if (loadedCount === newFiles.length) renderImageList();
                     };
-                    var $target = event.target;
-                    while ($target && $target !== element && $target.tagName) {
-                        if ($target.matches(selector)) {
-                            eventHandler.apply($target, arguments);
-                            return;
-                        }
-                        $target = $target.parentElement;
-                    }
-                } else if (typeof(selector) === 'function') {
-                    selector.apply(element, arguments);
-                }
-            }
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(f);
+            });
         }
 
-        function addEvent(elements, eventType, selector, eventHandler) {
-            if (elements) {
-                if (window.Window || (typeof(elements) === 'object' && elements.length === undefined)) {
-                    elements = [elements];
-                }
-                if (elements.length && eventType) {
-                    for (var i = 0; i < elements.length; i++) {
-                        (function (el) {
-                            if (typeof(selector) === 'function') {
-                                el.addEventListener(eventType, selector);
-                            } else if (typeof(eventHandler) === 'function') {
-                                el.addEventListener(eventType, function (event) {
-                                    delegateEvent(this, event, arguments, selector, eventHandler);
-                                }, false);
-                            }
-                        })(elements[i]);
-                    }
-                }
-            }
-        }
-
-        var PROTOTYPES = [Window, HTMLDocument, HTMLHeadElement, HTMLBodyElement, HTMLElement, HTMLAllCollection, HTMLCollection, NodeList];
-        for (var i = 0; i < PROTOTYPES.length; i++) {
-            (function (prop) {
-                if (prop === Window) {
-                    prop.prototype.on = prop.prototype.addEventListener;
-                    prop.prototype.off = prop.prototype.removeEventListener;
-                } else {
-                    prop.prototype.on = function (eventType, selector, eventHandler) {
-                        addEvent(this, eventType, selector, eventHandler);
-                    }
-                }
-            })(PROTOTYPES[i]);
-        }
-
-        $list.on('click', '.icon-action', function (e) {
-            e.stopPropagation();
-            var ACTIONS = {
-                'remove': 1,
-                'move-up': 1,
-                'move-down': 1
-            }
-            var action = this.dataset.action || '';
-            var index = parseInt(this.dataset.index || -1);
-            var nextIndex = -1;
-            if (ACTIONS[action] && index > -1) {
-                switch (action) {
-                    case 'remove':
-                        if (IMAGES[index]) {
-                            IMAGES.splice(index, 1);
-                        }
-                        break;
-                    case 'move-up':
-                        nextIndex = index - 1;
-                        nextIndex = nextIndex < 0 ? IMAGES.length - 1 : nextIndex;
-                        IMAGES[index] = IMAGES.splice(nextIndex, 1, IMAGES[index])[0];
-                        break;
-                    case 'move-down':
-                        nextIndex = index + 1;
-                        nextIndex = nextIndex > IMAGES.length - 1 ? 0 : nextIndex;
-                        IMAGES[index] = IMAGES.splice(nextIndex, 1, IMAGES[index])[0];
-                        break;
-                }
-                renderImagesList();
-                // 移除或移动图片后，如果只剩下一张图且在切割模式，更新画布
-                var currentMode = Array.from($modeRadios).find(radio => radio.checked).value;
-                if (currentMode === 'cut' && IMAGES.length === 1) {
-                    currentImage = IMAGES[0];
-                    applyCuttingCount();
-                    cuttingCanvas.style.display = 'block';
-                } else if (currentMode === 'cut' && IMAGES.length !== 1) {
-                    currentImage = null;
-                    cuttingCanvas.style.display = 'none';
-                }
-            }
+        // 拖拽支持
+        const dropZone = document.querySelector('.drop-zone');
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#e94560'; });
+        dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.style.borderColor = ''; });
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.style.borderColor = '';
+            handleFiles(e.dataTransfer.files);
         });
 
-        function renderImagesList() {
-            var html = [];
-            for (var i = 0; i < IMAGES.length; i++) {
-                html.push('<li>');
-                html.push('<i class="icon-action icon-remove" title="移除" data-index="' + i + '" data-action="remove"></i>');
-                html.push('<i class="icon-action icon-move icon-move-up" title="上移" data-index="' + i + '" data-action="move-up"></i>');
-                html.push('<i class="icon-action icon-move icon-move-down" title="下移" data-index="' + i + '" data-action="move-down"></i>');
-                html.push('<span class="text-filename">' + IMAGES[i].fileInfo.name + '</span>');
-                html.push('</li>');
-            }
-            $list.innerHTML = html.join('');
-        }
+        function renderImageList() {
+            const list = document.getElementById('image-list');
+            list.innerHTML = '';
+            document.getElementById('file-count').innerText = `${images.length} 张图片`;
 
-        function loadImages(files, callback) {
-            callback = callback || function (file, image) {
-                renderImagesList();
-            };
-
-            files = Array.prototype.slice.call(files || []);
-            var currentMode = Array.from($modeRadios).find(radio => radio.checked).value;
-            
-            if (files.length) {
-                var loader = function (file, callback) {
-                    if (files.length) {
-                        var image = new Image();
-                        var reader = new FileReader();
-                        reader.onload = function (e) {
-                            image.onload = function () {
-                                this.fileInfo = {
-                                    lastModified: file.lastModified,
-                                    lastModifiedDate: file.lastModifiedDate,
-                                    name: file.name,
-                                    size: file.size,
-                                    type: file.type,
-                                    webkitRelativePath: file.webkitRelativePath
-                                };
-                                IMAGES.push(this);
-                                
-                                // 仅在切割模式且只有一张图时更新切割画布和 currentImage
-                                if (currentMode === 'cut') {
-                                    if (IMAGES.length === 1) {
-                                        currentImage = this;
-                                        applyCuttingCount();
-                                        cuttingCanvas.style.display = 'block';
-                                    } else {
-                                        currentImage = null;
-                                        cuttingCanvas.style.display = 'none';
-                                    }
-                                }
-                                
-                                files.splice(0, 1);
-                                image = reader = undefined;
-                                if (callback && typeof(callback) === 'function') {
-                                    callback(file, this);
-                                }
-                                loader(files[0], callback);
-                            }
-                            image.src = e.target.result;
-                        }
-                        reader.readAsDataURL(file);
-                    }
-                }
-                loader(files[0], callback);
-            } else {
-                alert('未选择图片文件');
-            }
-        }
-
-        function SUM(v1, v2, v3) {
-            var args = Array.prototype.slice.call(arguments);
-            return args.reduce((acc, val) => parseInt(acc) + parseInt(val), 0);
-        }
-
-        function MAX(v1, v2, v3) {
-            var args = Array.prototype.slice.call(arguments);
-            return args && args.length && args[0]!== undefined ? Math.max.apply(window, args) : 0;
-        }
-
-        function change(target, key) {
-            if (target && key) {
-                if (key == 'mimetype') {
-                    var $groupItem = document.querySelector('#form-group-quality');
-                    if (target.value == 'image/jpeg') {
-                        $groupItem.style.display = 'block';
-                    } else {
-                        $groupItem.style.display = 'none';
-                    }
-                }
-            }
-        }
-
-        // Promise 封装 canvas.toBlob
-        function imageToBlobPromise(canvas, mimetype, quality, name) {
-            return new Promise(resolve => {
-                canvas.toBlob(blob => {
-                    resolve({ blob: blob, name: name });
-                }, mimetype, quality);
+            images.forEach((img, index) => {
+                const li = document.createElement('li');
+                li.className = 'image-item';
+                li.innerHTML = `
+                    <div class="image-info">
+                        <img src="${img.src}" class="image-thumb">
+                        <div class="image-name" title="${img.file.name}">${img.file.name}</div>
+                    </div>
+                    <div class="image-actions">
+                        <button class="action-btn" onclick="moveImage(${index}, -1)" title="上移"><i class="fas fa-arrow-up"></i></button>
+                        <button class="action-btn" onclick="moveImage(${index}, 1)" title="下移"><i class="fas fa-arrow-down"></i></button>
+                        <button class="action-btn" onclick="removeImage(${index})" title="删除" style="color:#ff6b6b"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                list.appendChild(li);
             });
         }
 
-        // 渲染结果区域
-        function renderResults() {
-            if (PROCESSED_FILES.length === 0) {
-                $result.innerHTML = '';
-                return;
-            }
-
-            var mode = Array.from($modeRadios).find(radio => radio.checked).value;
-            var html = '<label class="form-label">结果</label><div class="form-field form-field-result">';
-            
-            // 结果标题和打包下载按钮
-            if (mode === 'combine') {
-                html += '<p>已完成拼图。</p>';
-            } else {
-                html += `<p>已切割成 ${PROCESSED_FILES.length} 份文件。</p>`;
-            }
-
-            // 打包下载按钮 (无论是拼图还是切割，都提供)
-            html += `<p><button type="button" class="btn btn-choose" id="btn-batch-download" onclick="onBatchDownload('${mode}')">
-                        ${mode === 'combine' ? '打包下载 (单文件)' : '打包下载所有切割块'}
-                     </button></p>`;
-            
-            // 显示单张图片或切割块的预览/单独下载链接
-            if (mode === 'combine') {
-                // 拼图模式：只显示合并后的图片
-                var file = PROCESSED_FILES[0];
-                var blobURL = URL.createObjectURL(file.blob);
-                html += `<p>
-                            <a href="${blobURL}" download="${file.name}">下载合并后的图片</a>
-                            &nbsp;&nbsp;&nbsp;
-                            <a target="_blank" href="${blobURL}">新窗口打开</a>
-                        </p>
-                        <p><img src="${blobURL}"></p>`;
-            } else {
-                // 切割模式：只显示链接（避免过多图片导致页面卡顿）
-                PROCESSED_FILES.forEach((file, index) => {
-                    var blobURL = URL.createObjectURL(file.blob);
-                    html += `<p>
-                                <a href="${blobURL}" download="${file.name}">下载文件 ${file.name}</a>
-                                &nbsp;&nbsp;&nbsp;
-                                <a target="_blank" href="${blobURL}">新窗口打开文件 ${file.name}</a>
-                            </p>`;
-                });
-            }
-
-            html += '</div>';
-            $result.innerHTML = html;
+        function removeImage(index) {
+            images.splice(index, 1);
+            renderImageList();
         }
 
-        // 打包下载
-        function onBatchDownload(mode) {
-            if (PROCESSED_FILES.length === 0) {
-                alert('没有可以打包的文件。请先执行操作。');
-                return;
+        function moveImage(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex >= 0 && newIndex < images.length) {
+                [images[index], images[newIndex]] = [images[newIndex], images[index]];
+                renderImageList();
             }
-
-            if (typeof JSZip === 'undefined' || typeof saveAs === 'undefined') {
-                 alert('打包功能依赖JSZip和FileSaver库，请检查网络连接或手动下载JS文件。');
-                 return;
-            }
-
-            var zip = new JSZip();
-            // 文件夹名：根据模式和时间戳命名
-            var folderName = (mode === 'combine' ? 'combined_image' : 'cut_images') + '_' + Date.now();
-            var folder = zip.folder(folderName);
-            
-            PROCESSED_FILES.forEach(function(file) {
-                // 将 Blob 文件添加到 ZIP 文件夹中
-                folder.file(file.name, file.blob);
-            });
-
-            var $btn = document.getElementById('btn-batch-download');
-            var originalText = $btn.innerText;
-            $btn.innerText = '正在打包...请等待';
-            $btn.disabled = true;
-
-            // 生成 ZIP 文件
-            zip.generateAsync({ type: 'blob' })
-                .then(function(content) {
-                    // 使用 FileSaver.js 保存文件
-                    saveAs(content, folderName + '.zip');
-                    $btn.innerText = originalText;
-                    $btn.disabled = false;
-                })
-                .catch(function(e) {
-                    console.error(e);
-                    alert('打包下载失败。');
-                    $btn.innerText = originalText;
-                    $btn.disabled = false;
-                });
         }
 
-
-        function onCombine() {
-            if (IMAGES.length === 0) {
-                alert('请先添加图片文件');
-                return;
-            }
-            
-            $btnSubmit.innerText = '处理中...';
-            $btnSubmit.disabled = true;
-            PROCESSED_FILES = []; 
-
-            var orientation = document.querySelector('input[name="orientation"]:checked').value;
-            var mimetype = document.querySelector('input[name="mimetype"]:checked').value;
-            var quality = document.querySelector('input[name="quality"]:checked').value;
-            var firstWidth = IMAGES[0].width;
-            var firstHeight = IMAGES[0].height;
-            var canvasWidth = 0;
-            var canvasHeight = 0;
-            var enableImagesPerRow = $enableImagesPerRow.checked;
-            var imagesPerRow = parseInt($imagesPerRow.value) || 1;
-
-            if (enableImagesPerRow) {
-                var rows = Math.ceil(IMAGES.length / imagesPerRow);
-                var cols = imagesPerRow;
-
-                var maxAspectRatio = 0;
-                IMAGES.forEach(img => {
-                    maxAspectRatio = Math.max(maxAspectRatio, img.width / img.height);
-                });
-
-                var avgWidth = SUM(...IMAGES.map(img => img.width)) / IMAGES.length;
-                var avgHeight = SUM(...IMAGES.map(img => img.height)) / IMAGES.length;
-
-                canvasWidth = avgWidth * cols;
-                canvasHeight = avgHeight * rows;
-            } else {
-                if (orientation == 'vertically') {
-                    canvasWidth = firstWidth;
-                    canvasHeight = SUM.apply(window, IMAGES.map(function (img) {
-                        return parseInt(img.height * (firstWidth / img.width));
-                    }));
-                } else {
-                    canvasWidth = SUM.apply(window, IMAGES.map(function (img) {
-                        return parseInt(img.width * (firstHeight / img.height));
-                    }));
-                    canvasHeight = firstHeight;
-                }
-            }
-
-            var canvas = document.createElement('canvas');
-            canvas.width = canvasWidth;
-            canvas.height = canvasHeight;
-            var context = canvas.getContext('2d');
-            var offsetX = 0;
-            var offsetY = 0;
-
-            var fileName = 'pingtu-' + (new Date()).getTime();
-            if (mimetype == 'image/jpeg') {
-                context.fillStyle = '#FFFFFF';
-                context.fillRect(0, 0, canvas.width, canvas.height);
-                quality = parseFloat(quality);
-                fileName += '.jpg';
-            } else {
-                quality = undefined;
-                fileName += '.png';
-            }
-            
-            if (enableImagesPerRow) {
-                var cellWidth = canvasWidth / imagesPerRow;
-                var cellHeight = canvasHeight / Math.ceil(IMAGES.length / imagesPerRow);
-
-                IMAGES.forEach((img, index) => {
-                    var row = Math.floor(index / imagesPerRow);
-                    var col = index % imagesPerRow;
-                    var x = col * cellWidth;
-                    var y = row * cellHeight;
-
-                    var imgAspectRatio = img.width / img.height;
-                    var cellAspectRatio = cellWidth / cellHeight;
-
-                    var scale, drawWidth, drawHeight, drawX, drawY;
-
-                    // 适应模式：保持图片比例，居中显示
-                    if (imgAspectRatio > cellAspectRatio) {
-                        scale = cellWidth / img.width;
-                        drawWidth = cellWidth;
-                        drawHeight = img.height * scale;
-                        drawX = x;
-                        drawY = y + (cellHeight - drawHeight) / 2;
-                    } else {
-                        scale = cellHeight / img.height;
-                        drawWidth = img.width * scale;
-                        drawHeight = cellHeight;
-                        drawX = x + (cellWidth - drawWidth) / 2;
-                        drawY = y;
-                    }
-
-                    context.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-                });
-            } else {
-                IMAGES.forEach(function (img) {
-                    var scale;
-                    if (orientation == 'vertically') {
-                        scale = firstWidth / img.width;
-                        var drawHeight = img.height * scale;
-                        context.drawImage(img, 0, offsetY, firstWidth, drawHeight);
-                        offsetY += drawHeight;
-                    } else {
-                        scale = firstHeight / img.height;
-                        var drawWidth = img.width * scale;
-                        context.drawImage(img, offsetX, 0, drawWidth, firstHeight);
-                        offsetX += drawWidth;
-                    }
-                });
-            }
-
-            // 使用 Promise 异步转换
-            imageToBlobPromise(canvas, mimetype, quality, fileName)
-                .then(file => {
-                    PROCESSED_FILES.push(file); 
-                    renderResults();
-                })
-                .finally(() => {
-                    $btnSubmit.innerText = '执行';
-                    $btnSubmit.disabled = false;
-                });
+        function resetAll() {
+            images = [];
+            processedResults = [];
+            renderImageList();
+            document.getElementById('preview-area').innerHTML = `
+                <div style="text-align:center; opacity:0.3">
+                    <i class="fas fa-image" style="font-size:4rem; margin-bottom:20px"></i>
+                    <p>等待处理...</p>
+                </div>
+            `;
+            document.getElementById('download-zip-btn').style.display = 'none';
         }
 
-        /**
-         * @async
-         * 优化的 onCut 函数：使用 [源图序号]-[切块序号].(ext) 命名格式
-         */
-        async function onCut() {
-            if (IMAGES.length === 0) {
-                alert('请先添加图片文件');
-                return;
-            }
-            
-            const originalButtonText = $btnSubmit.innerText;
-            $btnSubmit.innerText = '准备切割...';
-            $btnSubmit.disabled = true;
-            PROCESSED_FILES = []; 
+        // --- 核心处理逻辑 ---
+        async function processImages() {
+            if (images.length === 0) return alert('请先上传图片！');
 
-            const mimetype = document.querySelector('input[name="mimetype"]:checked').value;
-            const quality = document.querySelector('input[name="quality"]:checked').value;
-            const cuttingType = document.querySelector('input[name="cuttingType"]:checked').value;
-            let count = parseInt($cuttingCount.value) || 2;
-            count = Math.max(2, Math.min(10, count)); 
-            
-            let fileIndex = 0; // 0-based index for iteration
-            let totalCuts = 0; // Total cuts for progress display
+            const btn = document.getElementById('action-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+
+            processedResults = []; // 清空上次结果
+            const quality = parseFloat(document.querySelector('input[name="quality"]:checked').value);
 
             try {
-                // Step 1: Count total cuts for better progress indication
-                for (const image of IMAGES) {
-                    if (IMAGES.length === 1 && guideLines.length === count - 1) {
-                         // Use custom guideLines count if in single-image cut mode
-                         totalCuts += guideLines.length + 1;
-                    } else {
-                         // Use default count for batch or fixed mode
-                         totalCuts += count;
-                    }
+                if (currentMode === 'combine') {
+                    await doCombine(quality);
+                } else {
+                    await doCut(quality);
                 }
-                
-                let currentCut = 0; // Global cut counter for progress
-                
-                // Step 2: Process images
-                for (const image of IMAGES) {
-                    fileIndex++; 
-                    const imageIndexPadded = fileIndex.toString().padStart(2, '0'); // e.g., '01', '02'
-                    
-                    const canvasWidth = image.width;
-                    const canvasHeight = image.height;
-                    let positions = [];
-                    let regions = [];
-
-                    // 实时更新按钮进度
-                    $btnSubmit.innerText = `切割中: ${fileIndex} / ${IMAGES.length} 张图...`;
-
-                    if (IMAGES.length === 1 && guideLines.length === count - 1) {
-                        // 单图模式：使用手动调整的参考线 (guideLines)
-                        guideLines.sort((a, b) => a.position - b.position);
-                        positions = guideLines.map(line => line.position);
-                    } else {
-                        // 批量或默认模式：使用等比例切割 (基于 count)
-                        const totalSize = cuttingType === 'vertical' ? canvasWidth : canvasHeight;
-                        for (let i = 1; i < count; i++) {
-                            positions.push(totalSize * i / count);
-                        }
-                    }
-
-                    // 定义切割区域
-                    let start = 0;
-                    positions.forEach(pos => {
-                        regions.push({ start: start, end: pos });
-                        start = pos;
-                    });
-                    regions.push({ start: start, end: cuttingType === 'vertical' ? canvasWidth : canvasHeight });
-
-                    let regionIndex = 0; // 0-based index for cuts within the current image
-                    // 顺序处理每个区域 (async/await 保证低内存消耗)
-                    for (const region of regions) {
-                        currentCut++; // Update global progress counter
-
-                        const canvas = document.createElement('canvas');
-                        const regionSize = region.end - region.start;
-                        
-                        if (cuttingType === 'vertical') {
-                            canvas.width = regionSize;
-                            canvas.height = canvasHeight;
-                        } else {
-                            canvas.width = canvasWidth;
-                            canvas.height = regionSize;
-                        }
-                        
-                        const context = canvas.getContext('2d');
-                        
-                        if (cuttingType === 'vertical') {
-                            context.drawImage(image, region.start, 0, regionSize, canvasHeight, 0, 0, regionSize, canvasHeight);
-                        } else {
-                            context.drawImage(image, 0, region.start, canvasWidth, regionSize, 0, 0, canvasWidth, regionSize);
-                        }
-                        
-                        regionIndex++; // Current piece index (1, 2, 3, ...)
-                        const regionIndexPadded = regionIndex.toString().padStart(2, '0'); // e.g., '01', '02'
-
-                        // *** 新命名格式: [源图序号]-[切块序号] ***
-                        let fileName = `${imageIndexPadded}-${regionIndexPadded}`; 
-                        // *****************************************
-
-                        let finalQuality = quality;
-                        
-                        if (mimetype == 'image/jpeg') {
-                            finalQuality = parseFloat(quality);
-                            fileName += '.jpg';
-                        } else {
-                            finalQuality = undefined;
-                            fileName += '.png';
-                        }
-                        
-                        // 关键：等待 toBlob 完成，释放当前 canvas 内存，再进行下一个
-                        const file = await imageToBlobPromise(canvas, mimetype, finalQuality, fileName);
-                        PROCESSED_FILES.push(file); 
-                        
-                        // 每次切割完成后，清理临时创建的 canvas 元素，帮助浏览器回收内存
-                        canvas.width = 1;
-                        canvas.height = 1;
-                    }
-                }
-
-                // 所有处理完成后，渲染结果
-                renderResults(); 
-
-            } catch (error) {
-                console.error("切割处理失败:", error);
-                alert("切割处理过程中发生错误。请尝试减少图片数量或降低质量。");
-            } finally {
-                $btnSubmit.innerText = originalButtonText;
-                $btnSubmit.disabled = false;
+            } catch (err) {
+                console.error(err);
+                alert('处理失败: ' + err.message);
             }
+
+            btn.disabled = false;
+            btn.innerHTML = currentMode === 'combine' ? '<i class="fas fa-magic"></i> 开始生成' : '<i class="fas fa-cut"></i> 开始切割';
         }
 
-        function onSubmit(e) {
-            // 关键修复：阻止默认的表单提交行为，防止页面跳转
-            if (e) {
-                e.preventDefault(); 
-            }
+        // 拼图逻辑
+        async function doCombine(quality) {
+            const direction = document.querySelector('input[name="direction"]:checked').value;
+            const cols = parseInt(document.getElementById('cols').value) || 1;
 
-            var mode = Array.from($modeRadios).find(radio => radio.checked).value;
-            if (mode === 'combine') {
-                onCombine();
+            // 计算画布尺寸
+            let canvasWidth = 0, canvasHeight = 0;
+
+            // 简单处理：如果是单列纵向，即所有图片宽度统一为第一张图宽度，高度累加
+            // 如果是网格，需要更复杂计算。为了简化且保证质量，我们以第一张图的尺寸为基准进行缩放对齐
+
+            const baseWidth = images[0].width;
+
+            // 针对每一张图，计算其缩放到 baseWidth 后的高度
+            // 实际上为了更好地拼接，我们不用缩放，而是直接画。
+            // 但如果图片尺寸差异巨大，拼接会很难看。这里假设用户上传的图尺寸相近，或者我们按最大宽度统一。
+
+            // 策略：统一宽度模式（适用于长图）。
+            // 找出最大宽度
+            const maxWidth = Math.max(...images.map(i => i.width));
+
+            if (direction === 'vertical' && cols === 1) {
+                // 经典长图模式
+                canvasWidth = maxWidth;
+                canvasHeight = images.reduce((acc, img) => acc + (img.height * (maxWidth / img.width)), 0);
+            } else if (direction === 'horizontal') {
+                // 横向拼接：统一高度
+                const maxHeight = Math.max(...images.map(i => i.height));
+                canvasHeight = maxHeight;
+                canvasWidth = images.reduce((acc, img) => acc + (img.width * (maxHeight / img.height)), 0);
             } else {
-                onCut();
+                // 网格待实现，或者简单按照原始尺寸拼
+                // 这里简化处理：暂时只支持这两种最常用的。网格拼图逻辑复杂
+                // 如果 cols > 1，强制转为 grid 逻辑（仅支持纵向排列 grid）
+                // 简单 Grid：每行等宽
+                const cellWidth = maxWidth; // 其实应该这一行里最大的
+                // ... 这个逻辑比较复杂，先实现基础的单列长图
+                if (cols > 1) alert("多列网格拼接逻辑较复杂，建议先把图片处理成一样大小。当前将尝试按原图拼接。");
             }
-            
-            // 返回 false 确保兼容性
-            return false;
+
+            // *** 修正：实现一个简单的 Grid 拼接 ***
+            const inputCols = cols;
+            // 计算每一行的最大高度
+            let rows = Math.ceil(images.length / inputCols);
+            let rowHeights = new Array(rows).fill(0);
+            let colWidths = new Array(inputCols).fill(0);
+
+            // 第一次遍历：计算网格尺寸
+            // 这种计算方式假设不对图片进行缩放，直接原样拼
+            // 如果要像“美图秀秀”那样拼，通常需要由容器宽度倒推。
+            // 这里我们采用：不做缩放，直接原样拼接。以图片本身尺寸为准。
+
+            let gridMap = []; // [row][col] = img
+            let c = 0;
+            for (let i = 0; i < images.length; i++) {
+                let r = Math.floor(i / inputCols);
+                let col = i % inputCols;
+                rowHeights[r] = Math.max(rowHeights[r], images[i].height);
+                colWidths[col] = Math.max(colWidths[col], images[i].width);
+            }
+
+            canvasWidth = colWidths.reduce((a, b) => a + b, 0);
+            canvasHeight = rowHeights.reduce((a, b) => a + b, 0);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight); // 白底
+
+            let currentX = 0;
+            let currentY = 0;
+
+            for (let r = 0; r < rows; r++) {
+                currentX = 0;
+                for (let cl = 0; cl < inputCols; cl++) {
+                    const idx = r * inputCols + cl;
+                    if (idx < images.length) {
+                        const img = images[idx].imgObj;
+                        // 居中绘制？还是左上角？ 这里选左上角
+                        // 如果这一格的图片比格子小，居中可能更好
+                        const cellW = colWidths[cl];
+                        const cellH = rowHeights[r];
+
+                        // 居中计算
+                        const x = currentX + (cellW - img.width) / 2;
+                        const y = currentY + (cellH - img.height) / 2;
+
+                        ctx.drawImage(img, x, y);
+                    }
+                    currentX += colWidths[cl];
+                }
+                currentY += rowHeights[r];
+            }
+
+            // 生成结果
+            await new Promise(r => canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                processedResults.push({
+                    blob: blob,
+                    url: url,
+                    name: `combined_${Date.now()}.jpg`
+                });
+                renderPreviewCombine(url);
+                r();
+            }, 'image/jpeg', quality));
         }
 
-        $btnChoose.addEventListener('click', function (e) {
-            var $input = document.createElement('input');
-            $input.setAttribute('type', 'file');
-            $input.setAttribute('name', 'file');
-            $input.setAttribute('accept', 'image/*');
-            $input.setAttribute('multiple', 'multiple');
-            $input.addEventListener('change', function (evt) {
-                loadImages(evt.target.files);
-            }, false);
-            $input.click();
-        }, false);
+        // 切割逻辑
+        async function doCut(quality) {
+            // 只处理第一张图
+            const img = images[0].imgObj;
+            const cutDir = document.querySelector('input[name="cut-dir"]:checked').value;
+            const count = parseInt(document.getElementById('cut-count').value);
 
+            const w = img.width;
+            const h = img.height;
+            const step = cutDir === 'vertical' ? (h / count) : (w / count); // vertical是切成几段（即横着切几刀，垂直分布）
+            // 修正：vertical 意思是“垂直方向排列”，还是“切垂直线”？
+            // 通常“垂直切割”指切成 1 | 2 | 3 （竖条）。“水平切割”指切成 三明治（横条）。
+            // 对应代码里 radio text: "垂直切割 (切成几段)" 这个描述有点歧义。
+            // 根据之前逻辑：
+            // Vertical -> 切成竖条 (width / count)
+            // Horizontal -> 切成横条 (height / count)
 
-        $btnReset.addEventListener('click', function (e) {
-            IMAGES = [];
-            PROCESSED_FILES = []; 
-            $list.innerHTML = '';
-            $result.innerHTML = '';
-            cuttingCanvas.style.display = 'none';
-            currentImage = null;
-            guideLines = [];
-        }, false);
+            // 但用户界面上写的是 "垂直切割 (切成几段)" -> 可能是指结果是垂直排列的？即横着切？
+            // 让我们按图标理解：||| 是竖切， ☰ 是横切。
+            // 修正代码逻辑：
+            // value="vertical" -> 竖切 (Vertical Slices) -> changing X
+            // value="horizontal" -> 横切 (Horizontal Slices) -> changing Y
 
-        document.addEventListener('dragleave', function (e) {
-            e.preventDefault();
-        }, false);
-        document.addEventListener('drop', function (e) {
-            e.preventDefault();
-            $droper.classList.remove('active');
-        }, false);
-        document.addEventListener('dragenter', function (e) {
-            e.preventDefault();
-            $droper.classList.add('active');
-        }, false);
-        document.addEventListener('dragover', function (e) {
-            e.preventDefault();
-            $droper.classList.add('active');
-        }, false);
+            processedResults = [];
+            const isVert = cutDir === 'vertical';
+            const size = isVert ? Math.floor(w / count) : Math.floor(h / count);
 
+            for (let i = 0; i < count; i++) {
+                const canvas = document.createElement('canvas');
+                canvas.width = isVert ? size : w;
+                canvas.height = isVert ? h : size;
+                const ctx = canvas.getContext('2d');
 
-        $droper.addEventListener('drop', function (e) {
-            e.preventDefault();
-            if (e.dataTransfer && e.dataTransfer.files) {
-                loadImages(e.dataTransfer.files);
+                // 绘制参数
+                const sx = isVert ? i * size : 0;
+                const sy = isVert ? 0 : i * size;
+                const sw = isVert ? size : w;
+                const sh = isVert ? h : size;
+
+                ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+                await new Promise(r => canvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    processedResults.push({
+                        blob: blob,
+                        url: url,
+                        name: `${images[0].file.name}_${i + 1}.jpg`
+                    });
+                    r();
+                }, 'image/jpeg', quality));
             }
-            $droper.classList.remove('active');
-        });
 
-        window.addEventListener('paste', function (e) {
-            var items = e.clipboardData.items;
-            var files = [];
-            var tmp;
-            for (var i = 0; i < items.length; i++) {
-                tmp = items[i];
-                if (tmp.kind === 'file' && tmp.type) {
-                    tmp = tmp.getAsFile();
-                    if (tmp) {
-                        files.push(tmp);
-                    }
-                }
-            }
-            tmp = undefined;
-            loadImages(files);
-        });
+            renderPreviewCut();
+        }
 
-        // 模式切换逻辑
-        $modeRadios.forEach(radio => {
-            radio.addEventListener('change', function () {
-                var isCutMode = this.value === 'cut';
-                
-                $cuttingOptions.style.display = isCutMode ? 'block' : 'none';
-                
-                if (isCutMode && IMAGES.length === 1) {
-                    cuttingCanvas.style.display = 'block';
-                    currentImage = IMAGES[0];
-                    applyCuttingCount();
-                } else {
-                    cuttingCanvas.style.display = 'none';
-                    if (!isCutMode) {
-                        currentImage = null; 
-                    }
-                }
+        // --- 渲染结果 ---
+        function renderPreviewCombine(url) {
+            const area = document.getElementById('preview-area');
+            area.innerHTML = `
+                <img id="preview-img" src="${url}" style="display:block">
+                <a href="${url}" download="combined.jpg" class="btn" style="margin-top:20px; width:auto">
+                    <i class="fas fa-download"></i> 下载图片
+                </a>
+            `;
+            document.getElementById('download-zip-btn').style.display = 'none'; // 单张不需要zip
+        }
+
+        function renderPreviewCut() {
+            const area = document.getElementById('preview-area');
+            let html = '<div class="result-grid">';
+            processedResults.forEach((item, i) => {
+                html += `
+                    <div class="result-item">
+                        <img src="${item.url}">
+                        <div>#${i + 1}</div>
+                        <a href="${item.url}" download="${item.name}" class="result-link">下载</a>
+                    </div>
+                `;
             });
-        });
+            html += '</div>';
+            area.innerHTML = html;
+            document.getElementById('download-zip-btn').style.display = 'inline-block';
+        }
 
-        // 切割相关函数
-        function updateCuttingCanvas() {
-            if (!currentImage) return; 
-            
-            cuttingCanvas.width = currentImage.width;
-            cuttingCanvas.height = currentImage.height;
-            
-            cuttingContext.drawImage(currentImage, 0, 0, cuttingCanvas.width, cuttingCanvas.height);
-            
-            guideLines.forEach(line => {
-                cuttingContext.fillStyle = 'rgba(255, 0, 0, 0.5)';
-                if (cuttingType === 'vertical') {
-                    cuttingContext.fillRect(line.position, 0, 2, cuttingCanvas.height);
-                } else {
-                    cuttingContext.fillRect(0, line.position, cuttingCanvas.width, 2);
-                }
+        function downloadZip() {
+            if (processedResults.length === 0) return;
+            const zip = new JSZip();
+            processedResults.forEach(item => {
+                zip.file(item.name, item.blob);
+            });
+            zip.generateAsync({ type: "blob" }).then(function (content) {
+                saveAs(content, "images.zip");
             });
         }
 
-        function applyCuttingCount() {
-            if (!currentImage) return; 
-            
-            var count = parseInt($cuttingCount.value) || 2;
-            count = Math.max(2, Math.min(10, count)); 
-            
-            cuttingType = document.querySelector('input[name="cuttingType"]:checked').value;
-            
-            guideLines = [];
-            if (cuttingType === 'vertical') {
-                for (var i = 1; i < count; i++) {
-                    guideLines.push({
-                        position: currentImage.width * i / count,
-                        type: 'vertical'
-                    });
-                }
-            } else {
-                for (var i = 1; i < count; i++) {
-                    guideLines.push({
-                        position: currentImage.height * i / count,
-                        type: 'horizontal'
-                    });
-                }
-            }
-            
-            cuttingCanvas.style.display = 'block';
-            updateCuttingCanvas();
-        }
-
-        $applyCuttingCount.addEventListener('click', applyCuttingCount);
-
-        $cuttingTypeRadios.forEach(radio => {
-            radio.addEventListener('change', function () {
-                cuttingType = this.value;
-                if (currentImage) {
-                    applyCuttingCount();
-                }
-            });
-        });
-
-        // 处理参考线拖动
-        cuttingCanvas.addEventListener('mousedown', function (e) {
-            if (!currentImage || guideLines.length === 0) return;
-            
-            var rect = cuttingCanvas.getBoundingClientRect();
-            var x = e.clientX - rect.left;
-            var y = e.clientY - rect.top;
-            
-            for (var i = 0; i < guideLines.length; i++) {
-                var line = guideLines[i];
-                if (cuttingType === 'vertical') {
-                    if (Math.abs(x - line.position) <= 5) {
-                        isDragging = true;
-                        draggingIndex = i;
-                        break;
-                    }
-                } else {
-                    if (Math.abs(y - line.position) <= 5) {
-                        isDragging = true;
-                        draggingIndex = i;
-                        break;
-                    }
-                }
-            }
-        });
-
-        document.addEventListener('mousemove', function (e) {
-            if (!isDragging || draggingIndex === -1) return;
-            
-            var rect = cuttingCanvas.getBoundingClientRect();
-            var position;
-            
-            if (cuttingType === 'vertical') {
-                position = e.clientX - rect.left;
-                // 限制在画布范围内，并且不超过相邻参考线
-                position = Math.max(0, Math.min(currentImage.width, position));
-                if (draggingIndex > 0) {
-                    position = Math.max(position, guideLines[draggingIndex - 1].position + 10);
-                }
-                if (draggingIndex < guideLines.length - 1) {
-                    position = Math.min(position, guideLines[draggingIndex + 1].position - 10);
-                }
-            } else {
-                position = e.clientY - rect.top;
-                // 限制在画布范围内，并且不超过相邻参考线
-                position = Math.max(0, Math.min(currentImage.height, position));
-                if (draggingIndex > 0) {
-                    position = Math.max(position, guideLines[draggingIndex - 1].position + 10);
-                }
-                if (draggingIndex < guideLines.length - 1) {
-                    position = Math.min(position, guideLines[draggingIndex + 1].position - 10);
-                }
-            }
-            
-            guideLines[draggingIndex].position = position;
-            updateCuttingCanvas();
-        });
-
-        document.addEventListener('mouseup', function (e) {
-            isDragging = false;
-            draggingIndex = -1;
-        });
     </script>
 </body>
 

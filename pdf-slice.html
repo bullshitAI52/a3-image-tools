@@ -1,653 +1,982 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>离线 PDF 试验切割（原型）</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF 精细切割工具 (PhotoShop级)</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:0;padding:0;display:flex;flex-direction:column;height:100vh;background:#f0f2f5;}
-    header{padding:12px;background:#0b5cff;color:white;display:flex;align-items:center;gap:12px;box-shadow:0 2px 4px rgba(0,0,0,.1);}
-    main{flex:1;display:flex;gap:12px;padding:12px;overflow:hidden;}
-    .panel{background:#fff;border:1px solid #e6e6e6;border-radius:8px;padding:12px;box-shadow:0 2px 6px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:12px;}
-    .left{width:300px;flex-shrink:0;overflow-y:auto;}
-    .center{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;overflow:auto;}
-    .right{width:320px;flex-shrink:0;}
-    canvas{background:#f8f8f8;border:1px solid #ddd;}
-    button{cursor:pointer;padding:8px 12px;border:1px solid #ddd;border-radius:4px;background:#fff;}
-    button:hover{background:#f5f5f5;}
-    label{display:block;margin-top:8px;}
-    input[type=number]{width:80px;padding:4px;border:1px solid #ddd;border-radius:4px;}
-    input[type=range]{width:100px;}
-    select{padding:4px;border:1px solid #ddd;border-radius:4px;}
-    .file-item{padding:8px;border-bottom:1px solid #f0f0f0;cursor:pointer;border-radius:4px;}
-    .file-item:hover{background:#f8f8f8;}
-    .file-item.active{background:#e3f2fd;}
-    footer{padding:8px;text-align:right;border-top:1px solid #eee;}
-    .status{margin-top:8px;padding:8px;border-radius:4px;font-size:12px;text-align:center;}
-    .error{background:#ffe6e6;color:#d00;}
-    .success{background:#e6ffe6;color:#080;}
-    hr{border:0;border-top:1px solid #eee;margin:12px 0;}
-    
-    /* 核心画布和标尺区域 */
-    .canvas-container {
-      position: relative;
-      display: inline-block;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      background-color: #f8f8f8;
-    }
-    #pdf-canvas, #overlay-canvas {
-      display: block;
-    }
-    #overlay-canvas {
-      position: absolute;
-      left: 0;
-      top: 0;
-      pointer-events: auto; /* 修复鼠标事件 */
+    :root {
+      --primary-bg: #1a1a2e;
+      --secondary-bg: #16213e;
+      --accent-color: #0f3460;
+      --highlight-color: #e94560;
+      --text-color: #f0f0f0;
+      --card-bg: rgba(22, 33, 62, 0.95);
     }
 
-    /* 预览缩略图样式 */
-    #slices-container {
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--primary-bg) 0%, #0f0f1a 100%);
+      color: var(--text-color);
+      height: 100vh;
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
-      padding: 12px;
-      background: #f8f9fa;
-      border-radius: 8px;
-    }
-    .slice-thumb-container {
-      width: 160px;
-      height: 120px;
-      border: 1px solid #ddd;
+      flex-direction: column;
       overflow: hidden;
-      position: relative;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      border-radius: 4px;
     }
-    .slice-thumb-container img {
+
+    header {
+      background: rgba(15, 52, 96, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      z-index: 1000;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    header h2 {
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    /* 左侧面板：设置与文件 */
+    .sidebar {
+      width: 320px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      overflow-y: auto;
+    }
+
+    .panel-section {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .panel-section:last-child {
+      border-bottom: none;
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #8a8a9b;
+      margin-bottom: 15px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 中间：画布区域 */
+    .preview-area {
+      flex: 1;
+      background: #000;
+      border-radius: 12px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .canvas-wrapper {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+      background-image:
+        linear-gradient(45deg, #111 25%, transparent 25%),
+        linear-gradient(-45deg, #111 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #111 75%),
+        linear-gradient(-45deg, transparent 75%, #111 75%);
+      background-size: 20px 20px;
+      background-color: #1a1a1a;
+    }
+
+    .canvas-box {
+      position: relative;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    canvas {
+      display: block;
+    }
+
+    /* 顶部工具条 */
+    .toolbar {
+      height: 50px;
+      background: var(--secondary-bg);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* 右侧/底部面板：切片预览 */
+    .slices-panel {
+      width: 280px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .slices-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 10px;
+      align-content: start;
+    }
+
+    /* UI 组件样式 */
+    .file-drop-zone {
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 30px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: rgba(255, 255, 255, 0.02);
+      position: relative;
+    }
+
+    .file-drop-zone:hover {
+      border-color: var(--highlight-color);
+      background: rgba(233, 69, 96, 0.05);
+    }
+
+    .file-drop-zone i {
+      font-size: 2rem;
+      color: #8a8a9b;
+      margin-bottom: 10px;
+    }
+
+    #file-input {
+      position: absolute;
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      opacity: 0;
+      top: 0;
+      left: 0;
+      cursor: pointer;
     }
-    
-    /* 标尺样式 */
+
+    .btn {
+      background: linear-gradient(135deg, #2b3a55, #16213e);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      background: linear-gradient(135deg, #3b4d6e, #233152);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary {
+      background: var(--highlight-color);
+      border: none;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background: #ff5772;
+      box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .control-group {
+      margin-bottom: 15px;
+    }
+
+    .control-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+      color: #ccc;
+    }
+
+    input[type="number"],
+    select {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 8px;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--highlight-color);
+    }
+
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--highlight-color);
+    }
+
+    .slice-thumb {
+      background: #000;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      transition: transform 0.2s;
+    }
+
+    .slice-thumb:hover {
+      transform: scale(1.05);
+      border-color: var(--highlight-color);
+      z-index: 10;
+    }
+
+    .slice-thumb img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .slice-info {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.7);
+      font-size: 0.7rem;
+      padding: 4px;
+      text-align: center;
+      backdrop-filter: blur(2px);
+    }
+
+    .file-list-item {
+      padding: 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      margin-bottom: 8px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .file-list-item:hover,
+    .file-list-item.active {
+      background: var(--highlight-color);
+      color: white;
+    }
+
+    /* 标尺 */
     .ruler {
       position: absolute;
-      background-color: rgba(240, 240, 240, 0.8);
-      z-index: 10;
-      font-size: 10px;
-      color: #555;
+      background: rgba(255, 255, 255, 0.95);
+      z-index: 100;
+      color: #333;
+      font-size: 9px;
       pointer-events: none;
-      user-select: none;
+      opacity: 0.8;
     }
+
     #horizontal-ruler {
-      height: 20px;
-      left: 20px;
       top: 0;
+      left: 20px;
       right: 0;
-      display: flex;
-      align-items: flex-end;
+      height: 20px;
+      border-bottom: 1px solid #999;
     }
+
     #vertical-ruler {
-      width: 20px;
-      left: 0;
       top: 20px;
+      left: 0;
       bottom: 0;
+      width: 20px;
+      border-right: 1px solid #999;
     }
+
     .ruler-mark {
       position: absolute;
-      border-left: 1px solid #bbb;
-      height: 5px;
-      line-height: 20px;
-      text-align: right;
+      background: #555;
     }
-    .ruler-mark-large {
-      height: 10px;
-      font-weight: bold;
+
+    /* 状态提示 */
+    .status-pill {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-pill.success {
+      background: rgba(76, 175, 80, 0.2);
+      color: #81c784;
+    }
+
+    .status-pill.error {
+      background: rgba(244, 67, 54, 0.2);
+      color: #e57373;
+    }
+
+    /* 滚动条美化 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    @media (max-width: 1024px) {
+      .main-container {
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .sidebar,
+      .slices-panel {
+        width: 100%;
+        height: auto;
+        max-height: 300px;
+      }
+
+      .canvas-wrapper {
+        min-height: 400px;
+      }
     }
   </style>
 </head>
+
 <body>
   <header>
-    <strong>PDF 试验切割（离线原型）</strong>
-    <div style="margin-left:auto;opacity:.9">使用CDN加载必要库，无需本地文件</div>
+    <h2><i class="fas fa-cut"></i> PDF 精细切割 <span
+        style="font-size:0.8rem; opacity:0.6; font-weight:400; margin-left:10px">v2.0 Pro</span></h2>
+    <div id="status" class="status-pill"><i class="fas fa-circle-notch fa-spin"></i> 初始化引擎中...</div>
   </header>
-  <main>
-    <div class="panel left">
-      <div>
-        <input id="file-input" type="file" accept="application/pdf" multiple />
-        <div style="margin-top:8px;color:#444;font-size:13px">或把 PDF 拖到此处</div>
-        <div id="status" class="status">正在加载库...</div>
-        <div id="file-list" style="margin-top:12px;overflow-y:auto;max-height:200px;"></div>
-      </div>
-      <hr/>
-      <div>
-        <label>居中切割（网格）</label>
-        <div>
-          行：<input id="rows" type="number" min="1" value="1"> 列：<input id="cols" type="number" min="1" value="1">
+
+  <div class="main-container">
+    <!-- 左侧控制面板 -->
+    <div class="sidebar">
+      <div class="panel-section">
+        <div class="section-title">导入文件</div>
+        <div class="file-drop-zone">
+          <i class="fas fa-file-pdf"></i>
+          <div>点击或拖拽 PDF</div>
+          <input id="file-input" type="file" accept="application/pdf" multiple />
         </div>
-        <label>边距 (px)：<input id="margin" type="number" min="0" value="8"></label>
-        <button id="apply-grid">应用到当前预览页</button>
+        <div id="file-list" style="margin-top:15px; max-height:150px; overflow-y:auto"></div>
       </div>
-      <hr/>
-      <div>
-        <label>自定义线切割</label>
-        <div>在预览画布上直接绘制或拖动线。按钮：添加水平 / 垂直线</div>
-        <div style="margin-top:8px;display:flex;gap:6px">
-          <button id="add-h">添加水平线</button>
-          <button id="add-v">添加垂直线</button>
-          <button id="clear-lines">清除线</button>
+
+      <div class="panel-section">
+        <div class="section-title">切割模式</div>
+        <div class="control-group">
+          <label>网格快速切割</label>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px">
+            <input id="rows" type="number" min="1" value="1" placeholder="行数">
+            <input id="cols" type="number" min="1" value="1" placeholder="列数">
+          </div>
+          <div style="display:flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <label style="margin:0; min-width:60px;">边距(px)</label>
+            <input id="margin" type="number" min="0" value="0">
+          </div>
+          <button id="apply-grid" class="btn" style="width:100%"><i class="fas fa-th"></i> 应用网格</button>
+        </div>
+        <div class="control-group">
+          <label>自定义辅助线 (可在画布拖动)</label>
+          <div class="btn-group">
+            <button id="add-h" class="btn" style="flex:1"><i class="fas fa-arrows-alt-v"></i> 水平线</button>
+            <button id="add-v" class="btn" style="flex:1"><i class="fas fa-arrows-alt-h"></i> 垂直线</button>
+          </div>
+          <button id="clear-lines" class="btn"
+            style="width:100%; margin-top:10px; background: rgba(244,67,54,0.2); color:#ff8a80; border-color:rgba(244,67,54,0.3)"><i
+              class="fas fa-trash"></i> 清除所有线</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-title">导出设置</div>
+        <div class="control-group">
+          <label>格式</label>
+          <select id="img-format">
+            <option value="png">PNG (无损通用)</option>
+            <option value="jpeg">JPEG (照片压缩)</option>
+          </select>
+        </div>
+        <button id="save-template" class="btn" style="width:100%; margin-bottom:8px">💾 保存当前配置</button>
+        <button id="load-template" class="btn" style="width:100%">📂 加载配置</button>
+      </div>
+    </div>
+
+    <!-- 中间画布 -->
+    <div class="preview-area">
+      <div class="toolbar">
+        <button id="prev-page" class="btn"><i class="fas fa-chevron-left"></i></button>
+        <span id="page-info" style="font-family:monospace; font-size:1.1rem; min-width:80px; text-align:center">0 /
+          0</span>
+        <button id="next-page" class="btn"><i class="fas fa-chevron-right"></i></button>
+        <div style="width:1px; height:20px; background:rgba(255,255,255,0.2); margin:0 10px"></div>
+        <i class="fas fa-search"></i>
+        <div class="range-wrap" style="width:150px">
+          <input id="scale" type="range" min="0.5" max="3.0" step="0.1" value="1.0">
+        </div>
+      </div>
+
+      <div class="canvas-wrapper">
+        <div class="canvas-box">
+          <div id="horizontal-ruler" class="ruler"></div>
+          <div id="vertical-ruler" class="ruler"></div>
+          <canvas id="pdf-canvas" width="0" height="0"></canvas>
+          <canvas id="overlay-canvas" width="0" height="0"
+            style="position:absolute; top:0; left:0; pointer-events:auto"></canvas>
         </div>
       </div>
     </div>
 
-    <div class="panel center">
-      <div style="display:flex;gap:8px;align-items:center">
-        <button id="prev-page">上一页</button>
-        <button id="next-page">下一页</button>
-        <div>页：<span id="page-info">0 / 0</span></div>
-        <div style="margin-left:16px">缩放：<input id="scale" type="range" min="0.5" max="3" step="0.1" value="3.0"></div>
+    <!-- 右侧预览 -->
+    <div class="slices-panel">
+      <div class="panel-section"
+        style="padding:15px; border-bottom:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2)">
+        <div class="section-title" style="margin:0">
+          <span>切片预览</span>
+          <button id="preview-slices" class="btn btn-sm"><i class="fas fa-sync-alt"></i> 刷新</button>
+        </div>
       </div>
-      <div class="canvas-container">
-        <div id="horizontal-ruler" class="ruler"></div>
-        <div id="vertical-ruler" class="ruler"></div>
-        <canvas id="pdf-canvas" width="800" height="1100"></canvas>
-        <canvas id="overlay-canvas" width="800" height="1100"></canvas>
+      <div id="slices-container" class="slices-container">
+        <div style="text-align:center; padding:20px; color:#666; width:100%; grid-column: 1/-1;">
+          <i class="fas fa-images" style="font-size:2rem; margin-bottom:10px; opacity:0.3"></i>
+          <p>点击刷新按钮预览</p>
+        </div>
       </div>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button id="preview-slices">预览切片</button>
-        <button id="export-zip">导出 ZIP（全部 pages）</button>
-      </div>
-      <div id="slices-container" style="width:100%;margin-top:8px;overflow-y:auto;max-height:200px;"></div>
-    </div>
-
-    <div class="panel right">
-      <div>
-        <label>输出格式</label>
-        <select id="img-format"><option value="png">PNG</option><option value="jpeg">JPEG</option></select>
-        <label>JPEG质量（仅对 JPEG 生效）<input id="jpeg-quality" type="number" min="10" max="100" value="100"></label>
-      </div>
-      <hr/>
-      <div>
-        <label>命名规则示例</label>
-        <div>默认：{fileIdx}.{pageIdx}.{sliceIdx}（sliceIdx 省略时为单页）</div>
-      </div>
-      <hr/>
-      <div>
-        <label>批量模板</label>
-        <div><button id="save-template">保存当前为模板</button> <button id="load-template">加载模板</button></div>
-        <div style="margin-top:8px;color:#666;font-size:12px">模板会保存在 localStorage（离线）</div>
+      <div style="padding:15px; background:rgba(0,0,0,0.2); border-top:1px solid rgba(255,255,255,0.1)">
+        <button id="export-zip" class="btn btn-primary" style="width:100%; padding:12px; font-size:1rem">
+          <i class="fas fa-download"></i> 导出所有切片 (ZIP)
+        </button>
       </div>
     </div>
-  </main>
-  <footer>
-    <small>修复版说明：自动从CDN加载 PDF.js、JSZip、FileSaver.js 库</small>
-  </footer>
+  </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <!-- 库加载 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-<script>
-if (window.pdfjsLib) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-}
-
-let pdfDoc = null;
-let currentFile = null;
-let files = [];
-let currentPage = 1;
-let scale = 3.0; // 默认值修改为 3.0
-let gridSpec = {rows:1,cols:1,margin:8};
-let customLines = {h:[], v:[]};
-let libsReady = false;
-
-const fileInput = document.getElementById('file-input');
-const fileList = document.getElementById('file-list');
-const pdfCanvas = document.getElementById('pdf-canvas');
-const overlay = document.getElementById('overlay-canvas');
-const statusDiv = document.getElementById('status');
-const ctx = pdfCanvas.getContext('2d');
-const octx = overlay.getContext('2d');
-const hRuler = document.getElementById('horizontal-ruler');
-const vRuler = document.getElementById('vertical-ruler');
-
-function checkLibsReady() {
-  if (window.pdfjsLib && window.JSZip && window.saveAs) {
-    libsReady = true;
-    statusDiv.textContent = '库加载完成，可以开始使用';
-    statusDiv.className = 'status success';
-    return true;
-  }
-  return false;
-}
-
-function waitForLibs(callback) {
-  if (checkLibsReady()) {
-    callback();
-    return;
-  }
-  let attempts = 0;
-  const maxAttempts = 50;
-  const checkInterval = setInterval(() => {
-    attempts++;
-    if (checkLibsReady()) {
-      clearInterval(checkInterval);
-      callback();
-    } else if (attempts >= maxAttempts) {
-      clearInterval(checkInterval);
-      statusDiv.textContent = '库加载失败，请刷新页面重试';
-      statusDiv.className = 'status error';
-    }
-  }, 100);
-}
-
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    if (!checkLibsReady()) {
-      statusDiv.textContent = '正在等待库加载完成...';
-      waitForLibs(() => console.log('所有库加载完成'));
-    }
-  }, 1000);
-});
-
-fileInput.addEventListener('change', e=>{
-  const fl = Array.from(e.target.files).filter(f=>f.type==='application/pdf');
-  addFiles(fl);
-});
-
-window.addEventListener('dragover', e=>{e.preventDefault();});
-window.addEventListener('drop', e=>{
-  e.preventDefault(); 
-  const dt = e.dataTransfer; 
-  if(dt && dt.files) {
-    addFiles(Array.from(dt.files).filter(f=>f.type==='application/pdf'));
-  }
-});
-
-function addFiles(fileArray){
-  if (!libsReady) {
-    alert('请等待库加载完成');
-    return;
-  }
-  let startIdx = files.length+1;
-  fileArray.forEach((f,i)=>{ 
-    files.push({file:f,fileIdx:startIdx+i}); 
-  });
-  renderFileList();
-  if(!currentFile && files.length > 0) loadFile(files[0]);
-}
-
-function renderFileList(){
-  fileList.innerHTML='';
-  files.forEach(f=>{
-    const el = document.createElement('div'); 
-    el.className = 'file-item' + (currentFile && currentFile.fileIdx === f.fileIdx ? ' active' : ''); 
-    el.textContent = `${f.fileIdx}. ${f.file.name} (${Math.round(f.file.size/1024)} KB)`;
-    el.addEventListener('click', ()=>loadFile(f));
-    fileList.appendChild(el);
-  });
-}
-
-async function loadFile(fileEntry){
-  if (!libsReady) {
-    alert('请等待库加载完成');
-    return;
-  }
-  try {
-    statusDiv.textContent = '正在加载PDF...';
-    statusDiv.className = 'status';
-    currentFile = fileEntry;
-    const arrayBuffer = await fileEntry.file.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({data:arrayBuffer});
-    pdfDoc = await loadingTask.promise;
-    currentPage = 1;
-    document.getElementById('page-info').textContent = `${currentPage} / ${pdfDoc.numPages}`;
-    await renderPage(currentPage);
-    renderFileList();
-    statusDiv.textContent = `PDF加载成功 (${pdfDoc.numPages} 页)`;
-    statusDiv.className = 'status success';
-  } catch (error) {
-    console.error('PDF加载失败:', error);
-    statusDiv.textContent = 'PDF加载失败: ' + error.message;
-    statusDiv.className = 'status error';
-  }
-}
-
-async function renderPage(pageNum){
-  if (!pdfDoc) return;
-  try {
-    const page = await pdfDoc.getPage(pageNum);
-    const viewport = page.getViewport({scale:1.5});
-    // *** 【修改点 1】强制使用最高缩放值进行显示和渲染 ***
-    scale = parseFloat(document.getElementById('scale').value) || 3.0; 
-    const renderScale = viewport.scale * scale; 
-    const vp = page.getViewport({scale:renderScale});
-    pdfCanvas.width = vp.width; 
-    pdfCanvas.height = vp.height;
-    overlay.width = vp.width; 
-    overlay.height = vp.height;
-    
-    const renderContext = {canvasContext: ctx, viewport: vp};
-    await page.render(renderContext).promise;
-    
-    customLines = customLines || {h:[],v:[]};
-    drawOverlay();
-    drawRulers(vp.width, vp.height, scale);
-    document.getElementById('page-info').textContent = `${currentPage} / ${pdfDoc.numPages}`;
-  } catch (error) {
-    console.error('页面渲染失败:', error);
-    statusDiv.textContent = '页面渲染失败: ' + error.message;
-    statusDiv.className = 'status error';
-  }
-}
-
-function drawRulers(width, height, currentScale) {
-    const dpi = 96; // 假设每英寸96像素
-    const inchToPx = 1;
-    const mmToPx = dpi / 25.4;
-    const cmToPx = dpi / 2.54;
-
-    const unit = 'cm'; // or 'mm', 'in'
-    let interval = 100;
-    if (currentScale < 1) {
-        interval = 200;
-    } else if (currentScale > 2) {
-        interval = 50;
+  <script>
+    // PDF.js worker 设置
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     }
 
-    hRuler.style.width = `${width}px`;
-    hRuler.style.height = '20px';
-    hRuler.innerHTML = '';
-    
-    vRuler.style.height = `${height}px`;
-    vRuler.style.width = '20px';
-    vRuler.innerHTML = '';
+    // 全局状态
+    let pdfDoc = null;
+    let currentFile = null;
+    let files = [];
+    let currentPage = 1;
+    let scale = 1.0;
+    let gridSpec = { rows: 1, cols: 1, margin: 0 };
+    let customLines = { h: [], v: [] };
+    let libsReady = false;
 
-    for (let x = 0; x <= width; x += interval) {
-        const mark = document.createElement('div');
-        mark.className = 'ruler-mark';
-        mark.style.left = `${x}px`;
-        mark.textContent = `${Math.round(x / cmToPx)}cm`;
-        hRuler.appendChild(mark);
+    // DOM 元素引用
+    const els = {
+      fileInput: document.getElementById('file-input'),
+      fileList: document.getElementById('file-list'),
+      pdfCanvas: document.getElementById('pdf-canvas'),
+      overlay: document.getElementById('overlay-canvas'),
+      status: document.getElementById('status'),
+      ctx: document.getElementById('pdf-canvas').getContext('2d'),
+      octx: document.getElementById('overlay-canvas').getContext('2d'),
+      hRuler: document.getElementById('horizontal-ruler'),
+      vRuler: document.getElementById('vertical-ruler'),
+      sliceContainer: document.getElementById('slices-container')
+    };
+
+    // --- 初始化与库检查 ---
+    function checkLibs() {
+      if (window.pdfjsLib && window.JSZip && window.saveAs) {
+        libsReady = true;
+        updateStatus('ready', '就绪');
+        return true;
+      }
+      return false;
     }
-    for (let y = 0; y <= height; y += interval) {
-        const mark = document.createElement('div');
-        mark.className = 'ruler-mark';
-        mark.style.top = `${y}px`;
-        mark.style.transform = 'rotate(-90deg) translateX(-100%)';
-        mark.style.transformOrigin = '0 100%';
-        mark.style.left = '100%';
-        mark.textContent = `${Math.round(y / cmToPx)}cm`;
-        vRuler.appendChild(mark);
+
+    function updateStatus(type, msg) {
+      els.status.className = 'status-pill ' + type;
+      let icon = type === 'loading' ? '<i class="fas fa-circle-notch fa-spin"></i>' :
+        type === 'success' ? '<i class="fas fa-check"></i>' :
+          type === 'error' ? '<i class="fas fa-exclamation-triangle"></i>' :
+            '<i class="fas fa-info-circle"></i>';
+      els.status.innerHTML = `${icon} ${msg}`;
     }
-}
 
+    window.addEventListener('load', () => {
+      let attempts = 0;
+      const check = setInterval(() => {
+        if (checkLibs() || attempts > 50) clearInterval(check);
+        attempts++;
+      }, 100);
+    });
 
-document.getElementById('scale').addEventListener('input', ()=>{
-  if (pdfDoc) renderPage(currentPage);
-});
+    // --- 文件处理 ---
+    els.fileInput.addEventListener('change', e => addFiles(e.target.files));
 
-document.getElementById('prev-page').addEventListener('click', ()=>{ 
-  if(!pdfDoc) return; 
-  if(currentPage>1){ 
-    currentPage--; 
-    renderPage(currentPage);
-  } 
-});
+    // 拖拽支持
+    const dropZone = document.querySelector('.file-drop-zone');
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#e94560'; });
+    dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.style.borderColor = ''; });
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.style.borderColor = '';
+      addFiles(e.dataTransfer.files);
+    });
 
-document.getElementById('next-page').addEventListener('click', ()=>{ 
-  if(!pdfDoc) return; 
-  if(currentPage<pdfDoc.numPages){ 
-    currentPage++; 
-    renderPage(currentPage);
-  } 
-});
+    function addFiles(fileList) {
+      if (!libsReady) return alert('核心库未加载完成，请刷新页面重试');
 
-document.getElementById('apply-grid').addEventListener('click', ()=>{
-  gridSpec.rows = Math.max(1,parseInt(document.getElementById('rows').value)||1);
-  gridSpec.cols = Math.max(1,parseInt(document.getElementById('cols').value)||1);
-  gridSpec.margin = Math.max(0,parseInt(document.getElementById('margin').value)||0);
-  customLines = {h:[],v:[]};
-  drawOverlay();
-  previewSlices();
-});
+      const newFiles = Array.from(fileList).filter(f => f.type === 'application/pdf');
+      if (newFiles.length === 0) return alert('只支持 PDF 文件');
 
-let draggingLine = null;
+      const startIdx = files.length;
+      newFiles.forEach((f, i) => {
+        files.push({ file: f, id: startIdx + i });
+      });
 
-overlay.addEventListener('mousedown', e=>{
-  const r = overlay.getBoundingClientRect(); 
-  const x=e.clientX-r.left, y=e.clientY-r.top;
-  const near = 6;
-  for(let i=0;i<customLines.h.length;i++){ 
-    if(Math.abs(customLines.h[i]-y)<=near){ 
-      draggingLine={type:'h',idx:i,offset:y-customLines.h[i]}; 
-      return; 
-    } 
-  }
-  for(let i=0;i<customLines.v.length;i++){ 
-    if(Math.abs(customLines.v[i]-x)<=near){ 
-      draggingLine={type:'v',idx:i,offset:x-customLines.v[i]}; 
-      return; 
-    } 
-  }
-});
-
-window.addEventListener('mousemove', e=>{ 
-  if(!draggingLine) return; 
-  const r = overlay.getBoundingClientRect(); 
-  const x=e.clientX-r.left, y=e.clientY-r.top; 
-  if(draggingLine.type==='h'){ 
-    customLines.h[draggingLine.idx] = Math.min(Math.max(0,y-draggingLine.offset), overlay.height); 
-  } else { 
-    customLines.v[draggingLine.idx] = Math.min(Math.max(0,x-draggingLine.offset), overlay.width); 
-  } 
-  drawOverlay(); 
-});
-
-window.addEventListener('mouseup', ()=>{ 
-  draggingLine=null; 
-});
-
-document.getElementById('add-h').addEventListener('click', ()=>{ 
-  customLines.h.push(Math.round(overlay.height/2)); 
-  drawOverlay(); 
-});
-
-document.getElementById('add-v').addEventListener('click', ()=>{ 
-  customLines.v.push(Math.round(overlay.width/2)); 
-  drawOverlay(); 
-});
-
-document.getElementById('clear-lines').addEventListener('click', ()=>{ 
-  customLines={h:[],v:[]}; 
-  drawOverlay(); 
-});
-
-function drawOverlay(){
-  octx.clearRect(0,0,overlay.width,overlay.height);
-  
-  const r = gridSpec.rows||1, c = gridSpec.cols||1, m = gridSpec.margin||0;
-  if((r>1||c>1) && customLines.h.length===0 && customLines.v.length===0){
-    octx.strokeStyle='rgba(0,128,0,0.6)';
-    octx.lineWidth=2;
-    for(let i=1;i<r;i++){ 
-      let y = Math.round(i*overlay.height/r); 
-      octx.beginPath(); octx.moveTo(m,y); octx.lineTo(overlay.width-m,y); octx.stroke(); 
+      renderFileList();
+      if (!currentFile && files.length > 0) loadFile(files[0]);
     }
-    for(let j=1;j<c;j++){ 
-      let x = Math.round(j*overlay.width/c); 
-      octx.beginPath(); octx.moveTo(x,m); octx.lineTo(x,overlay.height-m); octx.stroke(); 
-    }
-  }
-  
-  if(customLines.h.length>0 || customLines.v.length>0){
-      octx.strokeStyle='rgba(255,0,0,0.9)';
-      octx.lineWidth=2;
-      customLines.h.forEach(y=>{ octx.beginPath(); octx.moveTo(0,y); octx.lineTo(overlay.width,y); octx.stroke(); });
-      customLines.v.forEach(x=>{ octx.beginPath(); octx.moveTo(x,0); octx.lineTo(x,overlay.height); octx.stroke(); });
-  }
-}
 
-function computeSlices(){
-  const w = pdfCanvas.width, h = pdfCanvas.height;
-  const slices = [];
-  
-  if((customLines.h && customLines.h.length>0) || (customLines.v && customLines.v.length>0)){
-    const xs = [0].concat(customLines.v.slice().sort((a,b)=>a-b)).concat([w]);
-    const ys = [0].concat(customLines.h.slice().sort((a,b)=>a-b)).concat([h]);
-    for(let yi=0; yi<ys.length-1; yi++){
-      for(let xi=0; xi<xs.length-1; xi++){
-        const x0 = Math.round(xs[xi]), x1 = Math.round(xs[xi+1]);
-        const y0 = Math.round(ys[yi]), y1 = Math.round(ys[yi+1]);
-        const ww = x1-x0, hh = y1-y0; 
-        if(ww<=1||hh<=1) continue;
-        slices.push({x:x0,y:y0,w:ww,h:hh});
+    function renderFileList() {
+      els.fileList.innerHTML = '';
+      files.forEach(f => {
+        const item = document.createElement('div');
+        item.className = `file-list-item ${currentFile && currentFile.id === f.id ? 'active' : ''}`;
+        item.innerHTML = `
+                    <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:80%">${f.file.name}</div>
+                    <span style="opacity:0.6; font-size:0.8em">${(f.file.size / 1024 / 1024).toFixed(1)}MB</span>
+                `;
+        item.onclick = () => loadFile(f);
+        els.fileList.appendChild(item);
+      });
+    }
+
+    async function loadFile(fileWrapper) {
+      try {
+        updateStatus('loading', '正在加载 PDF...');
+        currentFile = fileWrapper;
+        renderFileList(); // 更新选中态
+
+        const buffer = await fileWrapper.file.arrayBuffer();
+        const task = pdfjsLib.getDocument(buffer);
+        pdfDoc = await task.promise;
+
+        currentPage = 1;
+        updateStatus('success', `加载成功 (${pdfDoc.numPages}页)`);
+        renderPage(currentPage);
+      } catch (err) {
+        console.error(err);
+        updateStatus('error', '文件加载失败');
       }
     }
-  } else {
-    const rows = Math.max(1,gridSpec.rows||1); 
-    const cols = Math.max(1,gridSpec.cols||1); 
-    const m = gridSpec.margin||0;
-    const cellW = Math.floor((w - 2*m) / cols);
-    const cellH = Math.floor((h - 2*m) / rows);
-    for(let r=0;r<rows;r++){
-      for(let c=0;c<cols;c++){
-        const x = m + c*cellW; 
-        const y = m + r*cellH; 
-        slices.push({x:x,y:y,w:cellW,h:cellH});
+
+    // --- 渲染核心 ---
+    async function renderPage(num) {
+      if (!pdfDoc) return;
+
+      try {
+        const page = await pdfDoc.getPage(num);
+        const viewport = page.getViewport({ scale: 1.5 }); // 基础质量
+
+        // 应用UI缩放
+        scale = parseFloat(document.getElementById('scale').value);
+        const renderScale = viewport.scale * scale;
+        const finalViewport = page.getViewport({ scale: renderScale });
+
+        els.pdfCanvas.width = finalViewport.width;
+        els.pdfCanvas.height = finalViewport.height;
+        els.overlay.width = finalViewport.width;
+        els.overlay.height = finalViewport.height;
+
+        await page.render({
+          canvasContext: els.ctx,
+          viewport: finalViewport
+        }).promise;
+
+        document.getElementById('page-info').innerText = `${num} / ${pdfDoc.numPages}`;
+        drawRulers(finalViewport.width, finalViewport.height);
+        drawOverlay();
+
+      } catch (err) {
+        console.error(err);
+        updateStatus('error', '渲染失败');
       }
     }
-  }
-  return slices;
-}
 
-async function previewSlices(){
-  if (!pdfDoc) return;
-  const slices = computeSlices();
-  const container = document.getElementById('slices-container'); 
-  container.innerHTML='';
-  const off = document.createElement('canvas'); 
-  off.width=pdfCanvas.width; 
-  off.height=pdfCanvas.height; 
-  const offctx = off.getContext('2d'); 
-  offctx.drawImage(pdfCanvas,0,0);
-  slices.forEach((s,i)=>{
-    const c = document.createElement('canvas'); 
-    const maxThumbSize = 320;
-    let thumbW = s.w, thumbH = s.h;
-    if(thumbW > maxThumbSize || thumbH > maxThumbSize) {
-        const ratio = Math.min(maxThumbSize / thumbW, maxThumbSize / thumbH);
-        thumbW = Math.max(1, thumbW * ratio);
-        thumbH = Math.max(1, thumbH * ratio);
+    // --- 辅助线与网格逻辑 ---
+    function drawOverlay() {
+      els.octx.clearRect(0, 0, els.overlay.width, els.overlay.height);
+
+      // 绘制网格
+      const { rows, cols, margin } = gridSpec;
+      const w = els.overlay.width;
+      const h = els.overlay.height;
+
+      if (rows > 1 || cols > 1) {
+        els.octx.strokeStyle = 'rgba(76, 175, 80, 0.5)';
+        els.octx.setLineDash([5, 3]);
+        els.octx.lineWidth = 1;
+
+        // 横线
+        for (let i = 1; i < rows; i++) {
+          const y = Math.round(i * h / rows);
+          els.octx.beginPath(); els.octx.moveTo(margin, y); els.octx.lineTo(w - margin, y); els.octx.stroke();
+        }
+        // 竖线
+        for (let i = 1; i < cols; i++) {
+          const x = Math.round(i * w / cols);
+          els.octx.beginPath(); els.octx.moveTo(x, margin); els.octx.lineTo(x, h - margin); els.octx.stroke();
+        }
+      }
+
+      // 绘制自定义线
+      els.octx.setLineDash([]);
+      els.octx.lineWidth = 2;
+      els.octx.strokeStyle = '#e94560'; // 红色高亮
+
+      customLines.h.forEach(y => {
+        els.octx.beginPath(); els.octx.moveTo(0, y); els.octx.lineTo(w, y); els.octx.stroke();
+        // 绘制手柄
+        els.octx.fillStyle = '#fff';
+        els.octx.beginPath(); els.octx.arc(20, y, 4, 0, Math.PI * 2); els.octx.fill();
+      });
+
+      customLines.v.forEach(x => {
+        els.octx.beginPath(); els.octx.moveTo(x, 0); els.octx.lineTo(x, h); els.octx.stroke();
+        els.octx.fillStyle = '#fff';
+        els.octx.beginPath(); els.octx.arc(x, 20, 4, 0, Math.PI * 2); els.octx.fill();
+      });
     }
-    c.width = thumbW;
-    c.height = thumbH; 
-    const cc = c.getContext('2d'); 
-    cc.drawImage(off, s.x, s.y, s.w, s.h, 0,0,thumbW,thumbH);
-    const containerDiv = document.createElement('div');
-    containerDiv.className = 'slice-thumb-container';
-    const img = document.createElement('img'); 
-    img.src = c.toDataURL(); 
-    img.title = `切片 ${i+1} (${s.w}x${s.h})`;
-    containerDiv.appendChild(img);
-    container.appendChild(containerDiv);
-  });
-}
 
-document.getElementById('preview-slices').addEventListener('click', previewSlices);
+    // 交互逻辑：拖拽线
+    let dragging = null;
+    els.overlay.addEventListener('mousedown', e => {
+      const rect = els.overlay.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const threshold = 8;
 
-document.getElementById('export-zip').addEventListener('click', async ()=>{
-  if(!pdfDoc || !currentFile) { alert('先加载一个 PDF'); return; }
-  if (!libsReady) { alert('库尚未准备就绪'); return; }
-  try {
-    statusDiv.textContent = '正在生成ZIP文件...';
-    statusDiv.className = 'status';
-    const zip = new JSZip();
-    const total = pdfDoc.numPages;
-    let processedSlices = 0;
-    let totalSlices = 0;
-    const slicesForPage = {};
-    for(let p=1;p<=total;p++){
-      const page = await pdfDoc.getPage(p);
-      const viewport = page.getViewport({scale:1.5});
-      
-      // *** 【修改点 2-A】强制使用最高的渲染缩放值 ***
-      const renderScale = viewport.scale * 3.0; // 强制使用 3.0 缩放
-      const vp = page.getViewport({scale:renderScale});
-      pdfCanvas.width = vp.width; pdfCanvas.height = vp.height; overlay.width = vp.width; overlay.height = vp.height;
-      
+      // 检查水平线
+      for (let i = 0; i < customLines.h.length; i++) {
+        if (Math.abs(y - customLines.h[i]) < threshold) {
+          dragging = { type: 'h', idx: i, offset: y - customLines.h[i] };
+          return;
+        }
+      }
+      // 检查垂直线
+      for (let i = 0; i < customLines.v.length; i++) {
+        if (Math.abs(x - customLines.v[i]) < threshold) {
+          dragging = { type: 'v', idx: i, offset: x - customLines.v[i] };
+          return;
+        }
+      }
+    });
+
+    window.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const rect = els.overlay.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (dragging.type === 'h') {
+        customLines.h[dragging.idx] = Math.max(0, Math.min(els.overlay.height, y - dragging.offset));
+      } else {
+        customLines.v[dragging.idx] = Math.max(0, Math.min(els.overlay.width, x - dragging.offset));
+      }
+      drawOverlay();
+    });
+
+    window.addEventListener('mouseup', () => dragging = null);
+
+    // --- 按钮事件绑定 ---
+    document.getElementById('apply-grid').onclick = () => {
+      gridSpec.rows = parseInt(document.getElementById('rows').value) || 1;
+      gridSpec.cols = parseInt(document.getElementById('cols').value) || 1;
+      gridSpec.margin = parseInt(document.getElementById('margin').value) || 0;
+      customLines = { h: [], v: [] }; // 重置自定义线
+      drawOverlay();
+      previewSlices(); // 自动预览
+    };
+
+    document.getElementById('add-h').onclick = () => {
+      customLines.h.push(els.overlay.height / 2);
+      drawOverlay();
+    };
+
+    document.getElementById('add-v').onclick = () => {
+      customLines.v.push(els.overlay.width / 2);
+      drawOverlay();
+    };
+
+    document.getElementById('clear-lines').onclick = () => {
+      customLines = { h: [], v: [] };
+      drawOverlay();
+    };
+
+    document.getElementById('prev-page').onclick = () => {
+      if (currentPage > 1) { currentPage--; renderPage(currentPage); }
+    };
+    document.getElementById('next-page').onclick = () => {
+      if (pdfDoc && currentPage < pdfDoc.numPages) { currentPage++; renderPage(currentPage); }
+    };
+    document.getElementById('scale').oninput = () => renderPage(currentPage);
+
+
+    // --- 切片与导出逻辑 ---
+    function computeSlices() {
+      const w = els.pdfCanvas.width;
+      const h = els.pdfCanvas.height;
+      let slices = [];
+
+      // 优先使用自定义线
+      if (customLines.h.length > 0 || customLines.v.length > 0) {
+        const xs = [0, ...customLines.v.sort((a, b) => a - b), w];
+        const ys = [0, ...customLines.h.sort((a, b) => a - b), h];
+
+        for (let y = 0; y < ys.length - 1; y++) {
+          for (let x = 0; x < xs.length - 1; x++) {
+            slices.push({
+              x: xs[x], y: ys[y],
+              w: xs[x + 1] - xs[x], h: ys[y + 1] - ys[y]
+            });
+          }
+        }
+      } else {
+        // 网格模式
+        const { rows, cols, margin } = gridSpec;
+        const cw = (w - margin * 2) / cols;
+        const ch = (h - margin * 2) / rows;
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            slices.push({
+              x: margin + c * cw,
+              y: margin + r * ch,
+              w: cw, h: ch
+            });
+          }
+        }
+      }
+      return slices.filter(s => s.w > 1 && s.h > 1);
+    }
+
+    async function previewSlices() {
+      if (!pdfDoc) return;
       const slices = computeSlices();
-      slicesForPage[p] = slices;
-      totalSlices += slices.length;
+      els.sliceContainer.innerHTML = '';
+
+      // 创建离屏画布用于裁剪
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = els.pdfCanvas.width;
+      offCanvas.height = els.pdfCanvas.height;
+      offCanvas.getContext('2d').drawImage(els.pdfCanvas, 0, 0);
+
+      slices.forEach((s, i) => {
+        const thumb = document.createElement('div');
+        thumb.className = 'slice-thumb';
+
+        const c = document.createElement('canvas');
+        c.width = s.w;
+        c.height = s.h;
+        c.getContext('2d').drawImage(offCanvas, s.x, s.y, s.w, s.h, 0, 0, s.w, s.h);
+
+        const img = document.createElement('img');
+        img.src = c.toDataURL();
+
+        thumb.appendChild(img);
+        thumb.innerHTML += `<div class="slice-info">#${i + 1} [${Math.round(s.w)}x${Math.round(s.h)}]</div>`;
+        els.sliceContainer.appendChild(thumb);
+      });
     }
-    for(let p=1;p<=total;p++){
-      statusDiv.textContent = `正在处理第 ${p}/${total} 页...`;
-      const page = await pdfDoc.getPage(p);
-      const viewport = page.getViewport({scale:1.5});
-      
-      // *** 【修改点 2-B】强制使用最高的渲染缩放值 ***
-      const renderScale = viewport.scale * 3.0; // 强制使用 3.0 缩放
-      const vp = page.getViewport({scale:renderScale});
-      const pageCanvas = document.createElement('canvas'); pageCanvas.width = vp.width; pageCanvas.height = vp.height; 
-      const pageCtx = pageCanvas.getContext('2d');
-      await page.render({canvasContext: pageCtx, viewport: vp}).promise;
-      const slices = slicesForPage[p];
-      
-      // *** 【修改点 3】强制使用 PNG 无损格式和最高质量（实际上 PNG 忽略质量参数） ***
-      const fmt = 'png'; 
-      const q = 1.0; 
-      
-      for(let sidx=0;sidx<slices.length;sidx++){
-        const s = slices[sidx];
-        if (s.w <= 0 || s.h <= 0) continue;
-        const sliceCanvas = document.createElement('canvas'); sliceCanvas.width = s.w; sliceCanvas.height = s.h; 
-        const sliceCtx = sliceCanvas.getContext('2d'); 
-        sliceCtx.drawImage(pageCanvas, s.x, s.y, s.w, s.h, 0, 0, s.w, s.h);
-        
-        const blob = await new Promise(resolve=> sliceCanvas.toBlob(resolve,`image/${fmt}`,q));
-        const fileName = slices.length > 1 ? `${currentFile.fileIdx}.${p}.${sidx+1}.${fmt==='png'?'png':'jpg'}` : `${currentFile.fileIdx}.${p}.${fmt==='png'?'png':'jpg'}`;
-        zip.file(fileName, blob);
-        processedSlices++;
-        if (processedSlices % 5 === 0) { statusDiv.textContent = `正在处理切片 ${processedSlices}/${totalSlices}...`; }
+    document.getElementById('preview-slices').onclick = previewSlices;
+
+    document.getElementById('export-zip').onclick = async () => {
+      if (!pdfDoc) return alert('请先加载 PDF');
+      updateStatus('loading', '正在处理 ZIP (这可能需要一点时间)...');
+
+      try {
+        const zip = new JSZip();
+        const total = pdfDoc.numPages;
+        const format = document.getElementById('img-format').value;
+
+        for (let i = 1; i <= total; i++) {
+          updateStatus('loading', `正在处理第 ${i}/${total} 页`);
+
+          const page = await pdfDoc.getPage(i);
+          // 强制高清导出 (3.0倍率)
+          const vp = page.getViewport({ scale: 3.0 * scale });
+
+          const c = document.createElement('canvas');
+          c.width = vp.width; c.height = vp.height;
+          await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+
+          // 计算相对比例的切片
+          // 注意：computedSlices 是基于当前显示比例的，需要映射到高清比例
+          const displayW = els.pdfCanvas.width;
+          const ratio = vp.width / displayW;
+
+          const baseSlices = computeSlices();
+
+          for (let j = 0; j < baseSlices.length; j++) {
+            const s = baseSlices[j];
+            const sc = document.createElement('canvas');
+            sc.width = s.w * ratio;
+            sc.height = s.h * ratio;
+
+            sc.getContext('2d').drawImage(c,
+              s.x * ratio, s.y * ratio, s.w * ratio, s.h * ratio,
+              0, 0, sc.width, sc.height
+            );
+
+            const blob = await new Promise(r => sc.toBlob(r, format === 'png' ? 'image/png' : 'image/jpeg', 0.95));
+            const name = `${currentFile.file.name.replace('.pdf', '')}_p${i}_${j + 1}.${format}`;
+            zip.file(name, blob);
+          }
+        }
+
+        updateStatus('loading', '正在打包生成...');
+        const content = await zip.generateAsync({ type: 'blob' });
+        saveAs(content, `PDF_Slices_${Date.now()}.zip`);
+        updateStatus('success', '导出完成');
+      } catch (err) {
+        console.error(err);
+        updateStatus('error', '导出出错了: ' + err.message);
+      }
+    };
+
+    // --- 标尺绘制 ---
+    function drawRulers(w, h) {
+      els.hRuler.innerHTML = '';
+      els.vRuler.innerHTML = '';
+
+      // 简单实现：每50px一个刻度
+      const step = 50;
+      for (let i = 0; i < w; i += step) {
+        const m = document.createElement('div');
+        m.style.position = 'absolute';
+        m.style.left = i + 'px';
+        m.style.top = '15px';
+        m.style.borderLeft = '1px solid #333';
+        m.style.height = '5px';
+        if (i % 100 === 0) {
+          m.style.height = '10px';
+          m.style.top = '10px';
+          m.innerText = i;
+          m.style.fontSize = '8px';
+        }
+        els.hRuler.appendChild(m);
+      }
+
+      for (let i = 0; i < h; i += step) {
+        const m = document.createElement('div');
+        m.style.position = 'absolute';
+        m.style.top = i + 'px';
+        m.style.left = '15px';
+        m.style.borderTop = '1px solid #333';
+        m.style.width = '5px';
+        if (i % 100 === 0) {
+          m.style.width = '10px';
+          m.style.left = '10px';
+          m.innerText = i;
+          m.style.fontSize = '8px';
+        }
+        els.vRuler.appendChild(m);
       }
     }
-    statusDiv.textContent = '正在打包ZIP文件...';
-    const content = await zip.generateAsync({type:'blob'});
-    const fileName = (currentFile.file.name.replace(/\.pdf$/i,'')||'result') + '.zip';
-    saveAs(content, fileName);
-    statusDiv.textContent = `ZIP文件导出成功！共处理 ${processedSlices} 个切片`;
-    statusDiv.className = 'status success';
-    setTimeout(() => renderPage(currentPage), 100);
-  } catch (error) {
-    console.error('导出失败:', error);
-    statusDiv.textContent = '导出失败: ' + error.message;
-    statusDiv.className = 'status error';
-    setTimeout(() => renderPage(currentPage), 100);
-  }
-});
 
-document.getElementById('save-template').addEventListener('click', ()=>{
-  const tpl = {grid:gridSpec,lines:customLines}; 
-  try { localStorage.setItem('pdfsplit_template', JSON.stringify(tpl)); alert('模板已保存到 localStorage'); } 
-  catch (error) { alert('模板保存失败: ' + error.message); }
-});
+    // 模板存取
+    document.getElementById('save-template').onclick = () => {
+      localStorage.setItem('pdf-slice-tpl', JSON.stringify({ grid: gridSpec, lines: customLines }));
+      alert('配置已保存 (本地)');
+    };
+    document.getElementById('load-template').onclick = () => {
+      const t = JSON.parse(localStorage.getItem('pdf-slice-tpl'));
+      if (t) {
+        gridSpec = t.grid;
+        customLines = t.lines;
+        document.getElementById('rows').value = gridSpec.rows;
+        document.getElementById('cols').value = gridSpec.cols;
+        drawOverlay();
+        alert('配置已加载');
+      }
+    };
 
-document.getElementById('load-template').addEventListener('click', ()=>{
-  try {
-    const t = localStorage.getItem('pdfsplit_template'); 
-    if(!t) { alert('未找到模板'); return; }
-    const tpl = JSON.parse(t); 
-    gridSpec = tpl.grid||gridSpec; customLines = tpl.lines||customLines; 
-    document.getElementById('rows').value = gridSpec.rows||1; 
-    document.getElementById('cols').value = gridSpec.cols||1; 
-    document.getElementById('margin').value = gridSpec.margin||0; 
-    drawOverlay(); 
-    alert('模板已加载'); 
-  } catch (error) { alert('模板加载失败: ' + error.message); }
-});
-
-console.log('PDF切割工具已启动，使用CDN库');
-</script>
+  </script>
 </body>
+
 </html>
