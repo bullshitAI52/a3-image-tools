@@ -256,30 +256,64 @@
     .controls {
       position: fixed;
       bottom: 30px;
-      right: 30px;
+      right: 0;
+      /* Align to right edge */
+      display: flex;
+      align-items: flex-start;
+      z-index: 1000;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .controls.collapsed {
+      transform: translateX(calc(100% - 24px));
+      /* Keep 24px visible (the handle width) */
+    }
+
+    .controls-body {
       display: flex;
       flex-direction: column;
       gap: 12px;
-      z-index: 1000;
       max-height: 85vh;
       overflow-y: auto;
-      padding: 15px 5px;
-      /* Add padding for shadows */
+      padding: 15px 20px 15px 5px;
+      /* Right padding for aesthetics */
       scrollbar-width: thin;
     }
 
-    .controls::-webkit-scrollbar {
+    .controls-body::-webkit-scrollbar {
       width: 6px;
     }
 
-    .controls::-webkit-scrollbar-track {
+    .controls-body::-webkit-scrollbar-track {
       background: rgba(0, 0, 0, 0.05);
       border-radius: 3px;
     }
 
-    .controls::-webkit-scrollbar-thumb {
+    .controls-body::-webkit-scrollbar-thumb {
       background: rgba(0, 0, 0, 0.2);
       border-radius: 3px;
+    }
+
+    .toggle-handle {
+      width: 24px;
+      height: 60px;
+      background: #444;
+      /* Dark handle */
+      border-radius: 8px 0 0 8px;
+      /* Rounded left */
+      box-shadow: -2px 2px 5px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+      margin-top: 15px;
+      /* Offset from top */
+      flex-shrink: 0;
+    }
+
+    .toggle-handle:hover {
+      background: #222;
     }
 
     .float-btn {
@@ -424,50 +458,55 @@
   </div>
 
   <!-- Functions Buttons -->
-  <div class="controls">
-    <button class="float-btn btn-blue" onclick="selectAll()">
-      <i class="fas fa-check-double"></i> 全部选中并加线
-    </button>
-    <button class="float-btn btn-blue" onclick="addCutLine()">
-      <i class="fas fa-arrows-alt-h"></i> 添加裁切线
-    </button>
-    <button class="float-btn btn-danger" onclick="clearPage()">
-      <i class="fas fa-trash"></i> 删除本页设置
-    </button>
-
-    <!-- Mask Button (Highlighted) -->
-    <button class="float-btn btn-info" onclick="addMask('a4')" style="transform: scale(1.05); margin-top: 10px;">
-      <i class="fas fa-crop-simple"></i> 添加 A4 遮罩
-    </button>
-    <button class="float-btn btn-info" onclick="addMask('free')" style="margin-top: 5px; background: #9C27B0;">
-      <i class="fas fa-vector-square"></i> 添加自由遮罩
-    </button>
-
-    <button class="float-btn" onclick="syncMasks('odd')" style="margin-top: 10px; background: #673AB7;">
-      <i class="fas fa-copy"></i> 同步到所有奇数页
-    </button>
-    <button class="float-btn" onclick="syncMasks('even')" style="margin-top: 5px; background: #3F51B5;">
-      <i class="fas fa-copy"></i> 同步到所有偶数页
-    </button>
-
-    <!-- Exports -->
-    <div
-      style="background: rgba(40, 167, 69, 0.1); padding: 10px; border-radius: 8px; margin-top: 10px; border: 1px solid #c3e6cb;">
-      <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#155724; cursor:pointer">
-        <input type="checkbox" id="smartStitch" checked>
-        <b>开启智能拼接 (自动紧凑排版)</b>
-      </label>
-      <div style="font-size:11px; color:#155724; opacity:0.8; margin-top:4px; margin-left:20px;">
-        自动将多个窄选区拼在同一页 (解决跨页拼接问题)
-      </div>
+  <div class="controls collapsed" id="controlsMenu">
+    <div class="toggle-handle" onclick="toggleControls()" title="收起/展开菜单">
+      <i class="fas fa-chevron-left" id="toggleIcon"></i>
     </div>
+    <div class="controls-body">
+      <button class="float-btn btn-blue" onclick="selectAll()">
+        <i class="fas fa-check-double"></i> 全部选中并加线
+      </button>
+      <button class="float-btn btn-blue" onclick="addCutLine()">
+        <i class="fas fa-arrows-alt-h"></i> 添加裁切线
+      </button>
+      <button class="float-btn btn-danger" onclick="clearPage()">
+        <i class="fas fa-trash"></i> 删除本页设置
+      </button>
 
-    <button class="float-btn btn-green" onclick="exportCutLines()" style="margin-top: 10px;">
-      <i class="fas fa-cut"></i> 导出裁切线PDF
-    </button>
-    <button class="float-btn btn-green" onclick="exportMasks()">
-      <i class="fas fa-layer-group"></i> 导出遮罩PDF
-    </button>
+      <!-- Mask Button (Highlighted) -->
+      <button class="float-btn btn-info" onclick="addMask('a4')" style="transform: scale(1.05); margin-top: 10px;">
+        <i class="fas fa-crop-simple"></i> 添加 A4 遮罩
+      </button>
+      <button class="float-btn btn-info" onclick="addMask('free')" style="margin-top: 5px; background: #9C27B0;">
+        <i class="fas fa-vector-square"></i> 添加自由遮罩
+      </button>
+
+      <button class="float-btn" onclick="syncMasks('odd')" style="margin-top: 10px; background: #673AB7;">
+        <i class="fas fa-copy"></i> 同步到所有奇数页
+      </button>
+      <button class="float-btn" onclick="syncMasks('even')" style="margin-top: 5px; background: #3F51B5;">
+        <i class="fas fa-copy"></i> 同步到所有偶数页
+      </button>
+
+      <!-- Exports -->
+      <div
+        style="background: rgba(40, 167, 69, 0.1); padding: 10px; border-radius: 8px; margin-top: 10px; border: 1px solid #c3e6cb;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#155724; cursor:pointer">
+          <input type="checkbox" id="smartStitch" checked>
+          <b>开启智能拼接 (自动紧凑排版)</b>
+        </label>
+        <div style="font-size:11px; color:#155724; opacity:0.8; margin-top:4px; margin-left:20px;">
+          自动将多个窄选区拼在同一页 (解决跨页拼接问题)
+        </div>
+      </div>
+
+      <button class="float-btn btn-green" onclick="exportCutLines()" style="margin-top: 10px;">
+        <i class="fas fa-cut"></i> 导出裁切线PDF
+      </button>
+      <button class="float-btn btn-green" onclick="exportMasks()">
+        <i class="fas fa-layer-group"></i> 导出遮罩PDF
+      </button>
+    </div>
   </div>
 
   <!-- Loading -->
@@ -758,6 +797,21 @@
       });
 
       alert(`成功同步到 ${count} 个${targetType === 'odd' ? '奇数' : '偶数'}页`);
+    };
+
+    // --- Toggle UI ---
+    window.toggleControls = () => {
+      const el = document.getElementById('controlsMenu');
+      const icon = document.getElementById('toggleIcon');
+      el.classList.toggle('collapsed');
+
+      if (el.classList.contains('collapsed')) {
+        icon.classList.remove('fa-chevron-right');
+        icon.classList.add('fa-chevron-left');
+      } else {
+        icon.classList.remove('fa-chevron-left');
+        icon.classList.add('fa-chevron-right');
+      }
     };
 
     // --- Helpers ---
