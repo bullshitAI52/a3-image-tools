@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>离线 PDF 试验切割（原型）</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:0;padding:0;display:flex;flex-direction:column;height:100vh;background:#f0f2f5;}
+    header{padding:12px;background:#0b5cff;color:white;display:flex;align-items:center;gap:12px;box-shadow:0 2px 4px rgba(0,0,0,.1);}
+    main{flex:1;display:flex;gap:12px;padding:12px;overflow:hidden;}
+    .panel{background:#fff;border:1px solid #e6e6e6;border-radius:8px;padding:12px;box-shadow:0 2px 6px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:12px;}
+    .left{width:300px;flex-shrink:0;overflow-y:auto;}
+    .center{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;overflow:auto;}
+    .right{width:320px;flex-shrink:0;}
+    canvas{background:#f8f8f8;border:1px solid #ddd;}
+    button{cursor:pointer;padding:8px 12px;border:1px solid #ddd;border-radius:4px;background:#fff;}
+    button:hover{background:#f5f5f5;}
+    label{display:block;margin-top:8px;}
+    input[type=number]{width:80px;padding:4px;border:1px solid #ddd;border-radius:4px;}
+    input[type=range]{width:100px;}
+    select{padding:4px;border:1px solid #ddd;border-radius:4px;}
+    .file-item{padding:8px;border-bottom:1px solid #f0f0f0;cursor:pointer;border-radius:4px;}
+    .file-item:hover{background:#f8f8f8;}
+    .file-item.active{background:#e3f2fd;}
+    footer{padding:8px;text-align:right;border-top:1px solid #eee;}
+    .status{margin-top:8px;padding:8px;border-radius:4px;font-size:12px;text-align:center;}
+    .error{background:#ffe6e6;color:#d00;}
+    .success{background:#e6ffe6;color:#080;}
+    hr{border:0;border-top:1px solid #eee;margin:12px 0;}
+    
+    /* 核心画布和标尺区域 */
+    .canvas-container {
+      position: relative;
+      display: inline-block;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      background-color: #f8f8f8;
+    }
+    #pdf-canvas, #overlay-canvas {
+      display: block;
+    }
+    #overlay-canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      pointer-events: auto; /* 修复鼠标事件 */
+    }
+
+    /* 预览缩略图样式 */
+    #slices-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    .slice-thumb-container {
+      width: 160px;
+      height: 120px;
+      border: 1px solid #ddd;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border-radius: 4px;
+    }
+    .slice-thumb-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    
+    /* 标尺样式 */
+    .ruler {
+      position: absolute;
+      background-color: rgba(240, 240, 240, 0.8);
+      z-index: 10;
+      font-size: 10px;
+      color: #555;
+      pointer-events: none;
+      user-select: none;
+    }
+    #horizontal-ruler {
+      height: 20px;
+      left: 20px;
+      top: 0;
+      right: 0;
+      display: flex;
+      align-items: flex-end;
+    }
+    #vertical-ruler {
+      width: 20px;
+      left: 0;
+      top: 20px;
+      bottom: 0;
+    }
+    .ruler-mark {
+      position: absolute;
+      border-left: 1px solid #bbb;
+      height: 5px;
+      line-height: 20px;
+      text-align: right;
+    }
+    .ruler-mark-large {
+      height: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>PDF 试验切割（离线原型）</strong>
+    <div style="margin-left:auto;opacity:.9">使用CDN加载必要库，无需本地文件</div>
+  </header>
+  <main>
+    <div class="panel left">
+      <div>
+        <input id="file-input" type="file" accept="application/pdf" multiple />
+        <div style="margin-top:8px;color:#444;font-size:13px">或把 PDF 拖到此处</div>
+        <div id="status" class="status">正在加载库...</div>
+        <div id="file-list" style="margin-top:12px;overflow-y:auto;max-height:200px;"></div>
+      </div>
+      <hr/>
+      <div>
+        <label>居中切割（网格）</label>
+        <div>
+          行：<input id="rows" type="number" min="1" value="1"> 列：<input id="cols" type="number" min="1" value="1">
+        </div>
+        <label>边距 (px)：<input id="margin" type="number" min="0" value="8"></label>
+        <button id="apply-grid">应用到当前预览页</button>
+      </div>
+      <hr/>
+      <div>
+        <label>自定义线切割</label>
+        <div>在预览画布上直接绘制或拖动线。按钮：添加水平 / 垂直线</div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <button id="add-h">添加水平线</button>
+          <button id="add-v">添加垂直线</button>
+          <button id="clear-lines">清除线</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel center">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="prev-page">上一页</button>
+        <button id="next-page">下一页</button>
+        <div>页：<span id="page-info">0 / 0</span></div>
+        <div style="margin-left:16px">缩放：<input id="scale" type="range" min="0.5" max="3" step="0.1" value="3.0"></div>
+      </div>
+      <div class="canvas-container">
+        <div id="horizontal-ruler" class="ruler"></div>
+        <div id="vertical-ruler" class="ruler"></div>
+        <canvas id="pdf-canvas" width="800" height="1100"></canvas>
+        <canvas id="overlay-canvas" width="800" height="1100"></canvas>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="preview-slices">预览切片</button>
+        <button id="export-zip">导出 ZIP（全部 pages）</button>
+      </div>
+      <div id="slices-container" style="width:100%;margin-top:8px;overflow-y:auto;max-height:200px;"></div>
+    </div>
+
+    <div class="panel right">
+      <div>
+        <label>输出格式</label>
+        <select id="img-format"><option value="png">PNG</option><option value="jpeg">JPEG</option></select>
+        <label>JPEG质量（仅对 JPEG 生效）<input id="jpeg-quality" type="number" min="10" max="100" value="100"></label>
+      </div>
+      <hr/>
+      <div>
+        <label>命名规则示例</label>
+        <div>默认：{fileIdx}.{pageIdx}.{sliceIdx}（sliceIdx 省略时为单页）</div>
+      </div>
+      <hr/>
+      <div>
+        <label>批量模板</label>
+        <div><button id="save-template">保存当前为模板</button> <button id="load-template">加载模板</button></div>
+        <div style="margin-top:8px;color:#666;font-size:12px">模板会保存在 localStorage（离线）</div>
+      </div>
+    </div>
+  </main>
+  <footer>
+    <small>修复版说明：自动从CDN加载 PDF.js、JSZip、FileSaver.js 库</small>
+  </footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<script>
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+}
+
+let pdfDoc = null;
+let currentFile = null;
+let files = [];
+let currentPage = 1;
+let scale = 3.0; // 默认值修改为 3.0
+let gridSpec = {rows:1,cols:1,margin:8};
+let customLines = {h:[], v:[]};
+let libsReady = false;
+
+const fileInput = document.getElementById('file-input');
+const fileList = document.getElementById('file-list');
+const pdfCanvas = document.getElementById('pdf-canvas');
+const overlay = document.getElementById('overlay-canvas');
+const statusDiv = document.getElementById('status');
+const ctx = pdfCanvas.getContext('2d');
+const octx = overlay.getContext('2d');
+const hRuler = document.getElementById('horizontal-ruler');
+const vRuler = document.getElementById('vertical-ruler');
+
+function checkLibsReady() {
+  if (window.pdfjsLib && window.JSZip && window.saveAs) {
+    libsReady = true;
+    statusDiv.textContent = '库加载完成，可以开始使用';
+    statusDiv.className = 'status success';
+    return true;
+  }
+  return false;
+}
+
+function waitForLibs(callback) {
+  if (checkLibsReady()) {
+    callback();
+    return;
+  }
+  let attempts = 0;
+  const maxAttempts = 50;
+  const checkInterval = setInterval(() => {
+    attempts++;
+    if (checkLibsReady()) {
+      clearInterval(checkInterval);
+      callback();
+    } else if (attempts >= maxAttempts) {
+      clearInterval(checkInterval);
+      statusDiv.textContent = '库加载失败，请刷新页面重试';
+      statusDiv.className = 'status error';
+    }
+  }, 100);
+}
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    if (!checkLibsReady()) {
+      statusDiv.textContent = '正在等待库加载完成...';
+      waitForLibs(() => console.log('所有库加载完成'));
+    }
+  }, 1000);
+});
+
+fileInput.addEventListener('change', e=>{
+  const fl = Array.from(e.target.files).filter(f=>f.type==='application/pdf');
+  addFiles(fl);
+});
+
+window.addEventListener('dragover', e=>{e.preventDefault();});
+window.addEventListener('drop', e=>{
+  e.preventDefault(); 
+  const dt = e.dataTransfer; 
+  if(dt && dt.files) {
+    addFiles(Array.from(dt.files).filter(f=>f.type==='application/pdf'));
+  }
+});
+
+function addFiles(fileArray){
+  if (!libsReady) {
+    alert('请等待库加载完成');
+    return;
+  }
+  let startIdx = files.length+1;
+  fileArray.forEach((f,i)=>{ 
+    files.push({file:f,fileIdx:startIdx+i}); 
+  });
+  renderFileList();
+  if(!currentFile && files.length > 0) loadFile(files[0]);
+}
+
+function renderFileList(){
+  fileList.innerHTML='';
+  files.forEach(f=>{
+    const el = document.createElement('div'); 
+    el.className = 'file-item' + (currentFile && currentFile.fileIdx === f.fileIdx ? ' active' : ''); 
+    el.textContent = `${f.fileIdx}. ${f.file.name} (${Math.round(f.file.size/1024)} KB)`;
+    el.addEventListener('click', ()=>loadFile(f));
+    fileList.appendChild(el);
+  });
+}
+
+async function loadFile(fileEntry){
+  if (!libsReady) {
+    alert('请等待库加载完成');
+    return;
+  }
+  try {
+    statusDiv.textContent = '正在加载PDF...';
+    statusDiv.className = 'status';
+    currentFile = fileEntry;
+    const arrayBuffer = await fileEntry.file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({data:arrayBuffer});
+    pdfDoc = await loadingTask.promise;
+    currentPage = 1;
+    document.getElementById('page-info').textContent = `${currentPage} / ${pdfDoc.numPages}`;
+    await renderPage(currentPage);
+    renderFileList();
+    statusDiv.textContent = `PDF加载成功 (${pdfDoc.numPages} 页)`;
+    statusDiv.className = 'status success';
+  } catch (error) {
+    console.error('PDF加载失败:', error);
+    statusDiv.textContent = 'PDF加载失败: ' + error.message;
+    statusDiv.className = 'status error';
+  }
+}
+
+async function renderPage(pageNum){
+  if (!pdfDoc) return;
+  try {
+    const page = await pdfDoc.getPage(pageNum);
+    const viewport = page.getViewport({scale:1.5});
+    // *** 【修改点 1】强制使用最高缩放值进行显示和渲染 ***
+    scale = parseFloat(document.getElementById('scale').value) || 3.0; 
+    const renderScale = viewport.scale * scale; 
+    const vp = page.getViewport({scale:renderScale});
+    pdfCanvas.width = vp.width; 
+    pdfCanvas.height = vp.height;
+    overlay.width = vp.width; 
+    overlay.height = vp.height;
+    
+    const renderContext = {canvasContext: ctx, viewport: vp};
+    await page.render(renderContext).promise;
+    
+    customLines = customLines || {h:[],v:[]};
+    drawOverlay();
+    drawRulers(vp.width, vp.height, scale);
+    document.getElementById('page-info').textContent = `${currentPage} / ${pdfDoc.numPages}`;
+  } catch (error) {
+    console.error('页面渲染失败:', error);
+    statusDiv.textContent = '页面渲染失败: ' + error.message;
+    statusDiv.className = 'status error';
+  }
+}
+
+function drawRulers(width, height, currentScale) {
+    const dpi = 96; // 假设每英寸96像素
+    const inchToPx = 1;
+    const mmToPx = dpi / 25.4;
+    const cmToPx = dpi / 2.54;
+
+    const unit = 'cm'; // or 'mm', 'in'
+    let interval = 100;
+    if (currentScale < 1) {
+        interval = 200;
+    } else if (currentScale > 2) {
+        interval = 50;
+    }
+
+    hRuler.style.width = `${width}px`;
+    hRuler.style.height = '20px';
+    hRuler.innerHTML = '';
+    
+    vRuler.style.height = `${height}px`;
+    vRuler.style.width = '20px';
+    vRuler.innerHTML = '';
+
+    for (let x = 0; x <= width; x += interval) {
+        const mark = document.createElement('div');
+        mark.className = 'ruler-mark';
+        mark.style.left = `${x}px`;
+        mark.textContent = `${Math.round(x / cmToPx)}cm`;
+        hRuler.appendChild(mark);
+    }
+    for (let y = 0; y <= height; y += interval) {
+        const mark = document.createElement('div');
+        mark.className = 'ruler-mark';
+        mark.style.top = `${y}px`;
+        mark.style.transform = 'rotate(-90deg) translateX(-100%)';
+        mark.style.transformOrigin = '0 100%';
+        mark.style.left = '100%';
+        mark.textContent = `${Math.round(y / cmToPx)}cm`;
+        vRuler.appendChild(mark);
+    }
+}
+
+
+document.getElementById('scale').addEventListener('input', ()=>{
+  if (pdfDoc) renderPage(currentPage);
+});
+
+document.getElementById('prev-page').addEventListener('click', ()=>{ 
+  if(!pdfDoc) return; 
+  if(currentPage>1){ 
+    currentPage--; 
+    renderPage(currentPage);
+  } 
+});
+
+document.getElementById('next-page').addEventListener('click', ()=>{ 
+  if(!pdfDoc) return; 
+  if(currentPage<pdfDoc.numPages){ 
+    currentPage++; 
+    renderPage(currentPage);
+  } 
+});
+
+document.getElementById('apply-grid').addEventListener('click', ()=>{
+  gridSpec.rows = Math.max(1,parseInt(document.getElementById('rows').value)||1);
+  gridSpec.cols = Math.max(1,parseInt(document.getElementById('cols').value)||1);
+  gridSpec.margin = Math.max(0,parseInt(document.getElementById('margin').value)||0);
+  customLines = {h:[],v:[]};
+  drawOverlay();
+  previewSlices();
+});
+
+let draggingLine = null;
+
+overlay.addEventListener('mousedown', e=>{
+  const r = overlay.getBoundingClientRect(); 
+  const x=e.clientX-r.left, y=e.clientY-r.top;
+  const near = 6;
+  for(let i=0;i<customLines.h.length;i++){ 
+    if(Math.abs(customLines.h[i]-y)<=near){ 
+      draggingLine={type:'h',idx:i,offset:y-customLines.h[i]}; 
+      return; 
+    } 
+  }
+  for(let i=0;i<customLines.v.length;i++){ 
+    if(Math.abs(customLines.v[i]-x)<=near){ 
+      draggingLine={type:'v',idx:i,offset:x-customLines.v[i]}; 
+      return; 
+    } 
+  }
+});
+
+window.addEventListener('mousemove', e=>{ 
+  if(!draggingLine) return; 
+  const r = overlay.getBoundingClientRect(); 
+  const x=e.clientX-r.left, y=e.clientY-r.top; 
+  if(draggingLine.type==='h'){ 
+    customLines.h[draggingLine.idx] = Math.min(Math.max(0,y-draggingLine.offset), overlay.height); 
+  } else { 
+    customLines.v[draggingLine.idx] = Math.min(Math.max(0,x-draggingLine.offset), overlay.width); 
+  } 
+  drawOverlay(); 
+});
+
+window.addEventListener('mouseup', ()=>{ 
+  draggingLine=null; 
+});
+
+document.getElementById('add-h').addEventListener('click', ()=>{ 
+  customLines.h.push(Math.round(overlay.height/2)); 
+  drawOverlay(); 
+});
+
+document.getElementById('add-v').addEventListener('click', ()=>{ 
+  customLines.v.push(Math.round(overlay.width/2)); 
+  drawOverlay(); 
+});
+
+document.getElementById('clear-lines').addEventListener('click', ()=>{ 
+  customLines={h:[],v:[]}; 
+  drawOverlay(); 
+});
+
+function drawOverlay(){
+  octx.clearRect(0,0,overlay.width,overlay.height);
+  
+  const r = gridSpec.rows||1, c = gridSpec.cols||1, m = gridSpec.margin||0;
+  if((r>1||c>1) && customLines.h.length===0 && customLines.v.length===0){
+    octx.strokeStyle='rgba(0,128,0,0.6)';
+    octx.lineWidth=2;
+    for(let i=1;i<r;i++){ 
+      let y = Math.round(i*overlay.height/r); 
+      octx.beginPath(); octx.moveTo(m,y); octx.lineTo(overlay.width-m,y); octx.stroke(); 
+    }
+    for(let j=1;j<c;j++){ 
+      let x = Math.round(j*overlay.width/c); 
+      octx.beginPath(); octx.moveTo(x,m); octx.lineTo(x,overlay.height-m); octx.stroke(); 
+    }
+  }
+  
+  if(customLines.h.length>0 || customLines.v.length>0){
+      octx.strokeStyle='rgba(255,0,0,0.9)';
+      octx.lineWidth=2;
+      customLines.h.forEach(y=>{ octx.beginPath(); octx.moveTo(0,y); octx.lineTo(overlay.width,y); octx.stroke(); });
+      customLines.v.forEach(x=>{ octx.beginPath(); octx.moveTo(x,0); octx.lineTo(x,overlay.height); octx.stroke(); });
+  }
+}
+
+function computeSlices(){
+  const w = pdfCanvas.width, h = pdfCanvas.height;
+  const slices = [];
+  
+  if((customLines.h && customLines.h.length>0) || (customLines.v && customLines.v.length>0)){
+    const xs = [0].concat(customLines.v.slice().sort((a,b)=>a-b)).concat([w]);
+    const ys = [0].concat(customLines.h.slice().sort((a,b)=>a-b)).concat([h]);
+    for(let yi=0; yi<ys.length-1; yi++){
+      for(let xi=0; xi<xs.length-1; xi++){
+        const x0 = Math.round(xs[xi]), x1 = Math.round(xs[xi+1]);
+        const y0 = Math.round(ys[yi]), y1 = Math.round(ys[yi+1]);
+        const ww = x1-x0, hh = y1-y0; 
+        if(ww<=1||hh<=1) continue;
+        slices.push({x:x0,y:y0,w:ww,h:hh});
+      }
+    }
+  } else {
+    const rows = Math.max(1,gridSpec.rows||1); 
+    const cols = Math.max(1,gridSpec.cols||1); 
+    const m = gridSpec.margin||0;
+    const cellW = Math.floor((w - 2*m) / cols);
+    const cellH = Math.floor((h - 2*m) / rows);
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const x = m + c*cellW; 
+        const y = m + r*cellH; 
+        slices.push({x:x,y:y,w:cellW,h:cellH});
+      }
+    }
+  }
+  return slices;
+}
+
+async function previewSlices(){
+  if (!pdfDoc) return;
+  const slices = computeSlices();
+  const container = document.getElementById('slices-container'); 
+  container.innerHTML='';
+  const off = document.createElement('canvas'); 
+  off.width=pdfCanvas.width; 
+  off.height=pdfCanvas.height; 
+  const offctx = off.getContext('2d'); 
+  offctx.drawImage(pdfCanvas,0,0);
+  slices.forEach((s,i)=>{
+    const c = document.createElement('canvas'); 
+    const maxThumbSize = 320;
+    let thumbW = s.w, thumbH = s.h;
+    if(thumbW > maxThumbSize || thumbH > maxThumbSize) {
+        const ratio = Math.min(maxThumbSize / thumbW, maxThumbSize / thumbH);
+        thumbW = Math.max(1, thumbW * ratio);
+        thumbH = Math.max(1, thumbH * ratio);
+    }
+    c.width = thumbW;
+    c.height = thumbH; 
+    const cc = c.getContext('2d'); 
+    cc.drawImage(off, s.x, s.y, s.w, s.h, 0,0,thumbW,thumbH);
+    const containerDiv = document.createElement('div');
+    containerDiv.className = 'slice-thumb-container';
+    const img = document.createElement('img'); 
+    img.src = c.toDataURL(); 
+    img.title = `切片 ${i+1} (${s.w}x${s.h})`;
+    containerDiv.appendChild(img);
+    container.appendChild(containerDiv);
+  });
+}
+
+document.getElementById('preview-slices').addEventListener('click', previewSlices);
+
+document.getElementById('export-zip').addEventListener('click', async ()=>{
+  if(!pdfDoc || !currentFile) { alert('先加载一个 PDF'); return; }
+  if (!libsReady) { alert('库尚未准备就绪'); return; }
+  try {
+    statusDiv.textContent = '正在生成ZIP文件...';
+    statusDiv.className = 'status';
+    const zip = new JSZip();
+    const total = pdfDoc.numPages;
+    let processedSlices = 0;
+    let totalSlices = 0;
+    const slicesForPage = {};
+    for(let p=1;p<=total;p++){
+      const page = await pdfDoc.getPage(p);
+      const viewport = page.getViewport({scale:1.5});
+      
+      // *** 【修改点 2-A】强制使用最高的渲染缩放值 ***
+      const renderScale = viewport.scale * 3.0; // 强制使用 3.0 缩放
+      const vp = page.getViewport({scale:renderScale});
+      pdfCanvas.width = vp.width; pdfCanvas.height = vp.height; overlay.width = vp.width; overlay.height = vp.height;
+      
+      const slices = computeSlices();
+      slicesForPage[p] = slices;
+      totalSlices += slices.length;
+    }
+    for(let p=1;p<=total;p++){
+      statusDiv.textContent = `正在处理第 ${p}/${total} 页...`;
+      const page = await pdfDoc.getPage(p);
+      const viewport = page.getViewport({scale:1.5});
+      
+      // *** 【修改点 2-B】强制使用最高的渲染缩放值 ***
+      const renderScale = viewport.scale * 3.0; // 强制使用 3.0 缩放
+      const vp = page.getViewport({scale:renderScale});
+      const pageCanvas = document.createElement('canvas'); pageCanvas.width = vp.width; pageCanvas.height = vp.height; 
+      const pageCtx = pageCanvas.getContext('2d');
+      await page.render({canvasContext: pageCtx, viewport: vp}).promise;
+      const slices = slicesForPage[p];
+      
+      // *** 【修改点 3】强制使用 PNG 无损格式和最高质量（实际上 PNG 忽略质量参数） ***
+      const fmt = 'png'; 
+      const q = 1.0; 
+      
+      for(let sidx=0;sidx<slices.length;sidx++){
+        const s = slices[sidx];
+        if (s.w <= 0 || s.h <= 0) continue;
+        const sliceCanvas = document.createElement('canvas'); sliceCanvas.width = s.w; sliceCanvas.height = s.h; 
+        const sliceCtx = sliceCanvas.getContext('2d'); 
+        sliceCtx.drawImage(pageCanvas, s.x, s.y, s.w, s.h, 0, 0, s.w, s.h);
+        
+        const blob = await new Promise(resolve=> sliceCanvas.toBlob(resolve,`image/${fmt}`,q));
+        const fileName = slices.length > 1 ? `${currentFile.fileIdx}.${p}.${sidx+1}.${fmt==='png'?'png':'jpg'}` : `${currentFile.fileIdx}.${p}.${fmt==='png'?'png':'jpg'}`;
+        zip.file(fileName, blob);
+        processedSlices++;
+        if (processedSlices % 5 === 0) { statusDiv.textContent = `正在处理切片 ${processedSlices}/${totalSlices}...`; }
+      }
+    }
+    statusDiv.textContent = '正在打包ZIP文件...';
+    const content = await zip.generateAsync({type:'blob'});
+    const fileName = (currentFile.file.name.replace(/\.pdf$/i,'')||'result') + '.zip';
+    saveAs(content, fileName);
+    statusDiv.textContent = `ZIP文件导出成功！共处理 ${processedSlices} 个切片`;
+    statusDiv.className = 'status success';
+    setTimeout(() => renderPage(currentPage), 100);
+  } catch (error) {
+    console.error('导出失败:', error);
+    statusDiv.textContent = '导出失败: ' + error.message;
+    statusDiv.className = 'status error';
+    setTimeout(() => renderPage(currentPage), 100);
+  }
+});
+
+document.getElementById('save-template').addEventListener('click', ()=>{
+  const tpl = {grid:gridSpec,lines:customLines}; 
+  try { localStorage.setItem('pdfsplit_template', JSON.stringify(tpl)); alert('模板已保存到 localStorage'); } 
+  catch (error) { alert('模板保存失败: ' + error.message); }
+});
+
+document.getElementById('load-template').addEventListener('click', ()=>{
+  try {
+    const t = localStorage.getItem('pdfsplit_template'); 
+    if(!t) { alert('未找到模板'); return; }
+    const tpl = JSON.parse(t); 
+    gridSpec = tpl.grid||gridSpec; customLines = tpl.lines||customLines; 
+    document.getElementById('rows').value = gridSpec.rows||1; 
+    document.getElementById('cols').value = gridSpec.cols||1; 
+    document.getElementById('margin').value = gridSpec.margin||0; 
+    drawOverlay(); 
+    alert('模板已加载'); 
+  } catch (error) { alert('模板加载失败: ' + error.message); }
+});
+
+console.log('PDF切割工具已启动，使用CDN库');
+</script>
+</body>
+</html>

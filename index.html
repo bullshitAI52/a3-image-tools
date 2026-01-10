@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A3/图片处理工具集</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: #333;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+        .description {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.5;
+        }
+        h1 {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛠️ A3/图片处理工具集</h1>
+        
+        <a href="exam-slice.html" class="card">
+            <div class="icon">📄</div>
+            <div class="title">A3试卷转A4 (PDF版)</div>
+            <div class="description">专门用于将A3横版试卷拆分为A4竖版PDF，支持添加裁切线，适合打印。</div>
+        </a>
+
+        <a href="pdf-slice.html" class="card">
+            <div class="icon">✂️</div>
+            <div class="title">PDF精细切割工具</div>
+            <div class="description">功能强大的PDF切割工具，支持网格/自定义线切割，带标尺，导出高清图片/ZIP。</div>
+        </a>
+
+        <a href="image-slice.html" class="card">
+            <div class="icon">🧩</div>
+            <div class="title">图片拼图与切割</div>
+            <div class="description">图片批处理工具，支持多图拼接长图，或将单图切割为多份。</div>
+        </a>
+    </div>
+</body>
+</html>
