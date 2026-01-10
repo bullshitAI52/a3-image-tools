@@ -140,6 +140,50 @@
       z-index: 5;
     }
 
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+        height: auto;
+        display: block;
+      }
+
+      .workspace {
+        flex-direction: column;
+        height: auto;
+        overflow: visible;
+      }
+
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #eee;
+        max-height: 300px;
+        /* Limit height on mobile */
+      }
+
+      .guide {
+        display: none;
+        /* Hide guide on mobile to save space */
+      }
+
+      .canvas-container {
+        min-height: 500px;
+        padding: 10px;
+      }
+
+      /* Adjust controls for mobile */
+      .controls {
+        bottom: 20px;
+      }
+
+      .controls-body {
+        max-height: 60vh;
+      }
+    }
+
+    /* ... exisiting styles ... */
+
     /* Badges */
     .page-badge {
       position: absolute;
@@ -152,6 +196,9 @@
       font-size: 0.85rem;
       font-weight: 600;
     }
+
+    /* ... */
+
 
     /* ================= A4 MASK STYLES ================= */
     .a4-mask {
@@ -614,6 +661,14 @@
       currPageIdx = idx;
     }
 
+    // --- Interaction Helpers (Mouse & Touch) ---
+    function getPointerPos(e) {
+      if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+      return { x: e.clientX, y: e.clientY };
+    }
+
     // --- Cut Line Logic ---
     window.addCutLine = () => {
       if (currPageIdx === null) return alert('请先点选一页');
@@ -623,21 +678,33 @@
       line.style.left = '50%';
 
       // Drag logic
-      let dragging = false;
-      line.onmousedown = e => {
-        dragging = true;
+      const startDrag = (e) => {
+        e.preventDefault(); // Prevent scroll on touch
         e.stopPropagation();
         const rect = page.wrapper.getBoundingClientRect();
-        const onMove = ev => {
-          if (!dragging) return;
-          let x = ev.clientX - rect.left;
-          x = Math.max(0, Math.min(x, rect.width));
-          line.style.left = (x / rect.width * 100) + '%';
+
+        const onMove = (ev) => {
+          const { x } = getPointerPos(ev);
+          let newX = x - rect.left;
+          newX = Math.max(0, Math.min(newX, rect.width));
+          line.style.left = (newX / rect.width * 100) + '%';
         };
-        const onUp = () => { dragging = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+
+        const onUp = () => {
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('mouseup', onUp);
+          window.removeEventListener('touchmove', onMove);
+          window.removeEventListener('touchend', onUp);
+        };
+
         window.addEventListener('mousemove', onMove);
         window.addEventListener('mouseup', onUp);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onUp);
       };
+
+      line.addEventListener('mousedown', startDrag);
+      line.addEventListener('touchstart', startDrag, { passive: false });
 
       page.wrapper.appendChild(line);
       page.lines.push(line);
@@ -696,38 +763,44 @@
             <div class="mask-resize" style="background:${color}"></div>
         `;
 
-      mask.querySelector('.mask-close').onclick = e => {
+      // Close handler
+      const closeBtn = mask.querySelector('.mask-close');
+      const handleClose = (e) => {
         e.stopPropagation();
+        e.preventDefault(); // Stop touch causing other clicks
         mask.remove();
         page.masks = page.masks.filter(m => m !== mask);
       };
+      closeBtn.addEventListener('click', handleClose);
+      closeBtn.addEventListener('touchstart', handleClose);
 
       // Drag Logic
-      let mode = null;
-      let startX, startY, startRect;
-
-      mask.onmousedown = e => {
+      const startDrag = (e) => {
         e.stopPropagation();
+        if (e.cancelable) e.preventDefault(); // Prevent scroll unless it's a simple tap
+
         const pIdx = pages.indexOf(page);
         if (pIdx !== -1 && currPageIdx !== pIdx) selectPage(pIdx);
 
         page.wrapper.querySelectorAll('.a4-mask').forEach(m => m.classList.remove('active'));
         mask.classList.add('active');
 
+        let mode = 'drag';
         if (e.target.classList.contains('mask-resize')) mode = 'resize';
-        else mode = 'drag';
 
-        startX = e.clientX; startY = e.clientY;
-        startRect = {
+        const { x: startX, y: startY } = getPointerPos(e);
+
+        const startRect = {
           l: mask.offsetLeft, t: mask.offsetTop,
           w: mask.offsetWidth, h: mask.offsetHeight
         };
-
         const parentRect = page.wrapper.getBoundingClientRect();
 
-        const onMove = ev => {
-          const dx = ev.clientX - startX;
-          const dy = ev.clientY - startY;
+        const onMove = (ev) => {
+          if (ev.cancelable) ev.preventDefault(); // Stop scrolling while dragging
+          const { x: currX, y: currY } = getPointerPos(ev);
+          const dx = currX - startX;
+          const dy = currY - startY;
 
           if (mode === 'drag') {
             let nl = startRect.l + dx;
@@ -753,10 +826,22 @@
             mask.style.height = nh + 'px';
           }
         };
-        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+
+        const onUp = () => {
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('mouseup', onUp);
+          window.removeEventListener('touchmove', onMove);
+          window.removeEventListener('touchend', onUp);
+        };
+
         window.addEventListener('mousemove', onMove);
         window.addEventListener('mouseup', onUp);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onUp);
       };
+
+      mask.addEventListener('mousedown', startDrag);
+      mask.addEventListener('touchstart', startDrag, { passive: false });
 
       page.wrapper.appendChild(mask);
       page.masks.push(mask);
@@ -799,7 +884,7 @@
       alert(`成功同步到 ${count} 个${targetType === 'odd' ? '奇数' : '偶数'}页`);
     };
 
-    // --- Toggle UI ---
+    // --- Helpers ---
     window.toggleControls = () => {
       const el = document.getElementById('controlsMenu');
       const icon = document.getElementById('toggleIcon');
