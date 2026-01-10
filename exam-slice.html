@@ -379,15 +379,9 @@
           <ul>
             <li><b>上传文件：</b>支持 A3 横版试卷或图片。</li>
             <li><b>添加裁切线：</b>适用于规则的左右分栏试卷。添加红线后，按线分割。</li>
-            <li><b>添加 A4 遮罩：</b>适用于不规则内容或三栏试卷。
-              <ul>
-                <li>点击“添加 A4 遮罩”生成彩色选框。</li>
-                <li>每次添加会自动切换颜色 (蓝/橙/绿/紫/粉/青)。</li>
-                <li>拖动遮罩覆盖需要提取的题目区域。</li>
-                <li>拖动右下角圆点可调整大小（锁定 A4 比例）。</li>
-              </ul>
-            </li>
-            <li><b>智能拼接：</b>勾选右侧“智能拼接”开关后，导出的遮罩若宽度允许，会自动合并到同一页 PDF（例如将跨页的两列题目拼在一页）。</li>
+            <li><b>添加 A4 遮罩：</b>锁定 A4 比例，适合标准 A4 提取。</li>
+            <li><b>添加自由遮罩：</b><b>无比例限制</b>，可自由拉伸长宽，适合不规则或长条形内容。</li>
+            <li><b>智能拼接：</b>勾选后，导出的遮罩若宽度允许，会自动合并到同一页 PDF。</li>
           </ul>
         </div>
       </div>
@@ -413,8 +407,11 @@
     </button>
 
     <!-- Mask Button (Highlighted) -->
-    <button class="float-btn btn-info" onclick="addMask()" style="transform: scale(1.05); margin-top: 10px;">
+    <button class="float-btn btn-info" onclick="addMask('a4')" style="transform: scale(1.05); margin-top: 10px;">
       <i class="fas fa-crop-simple"></i> 添加 A4 遮罩
+    </button>
+    <button class="float-btn btn-info" onclick="addMask('free')" style="margin-top: 5px; background: #9C27B0;">
+      <i class="fas fa-vector-square"></i> 添加自由遮罩
     </button>
 
     <!-- Exports -->
@@ -577,13 +574,22 @@
       '#00BCD4'  // Cyan
     ];
 
-    window.addMask = () => {
+    window.addMask = (type = 'a4') => {
       if (currPageIdx === null) return alert('请先点选一页');
       const page = pages[currPageIdx];
       const rect = page.wrapper.getBoundingClientRect();
 
-      let w = rect.width * 0.4;
-      let h = w / A4_RATIO;
+      let w, h, badgeText;
+
+      if (type === 'free') {
+        w = rect.width * 0.4;
+        h = rect.height * 0.3; // Arbitrary rect
+        badgeText = '自由';
+      } else {
+        w = rect.width * 0.4;
+        h = w / A4_RATIO;
+        badgeText = 'A4';
+      }
 
       const color = MASK_COLORS[page.masks.length % MASK_COLORS.length];
 
@@ -596,7 +602,7 @@
       mask.style.backgroundColor = color + '26';
 
       mask.innerHTML = `
-            <div class="mask-badge-a4" style="background:${color}">A4</div>
+            <div class="mask-badge-a4" style="background:${color}">${badgeText}</div>
             <div class="mask-close"><i class="fas fa-times"></i></div>
             <div class="mask-resize" style="background:${color}"></div>
         `;
@@ -641,10 +647,20 @@
             mask.style.top = nt + 'px';
           } else {
             let nw = startRect.w + dx;
-            let nh = nw / A4_RATIO;
-            if (startRect.l + nw > parentRect.width) { nw = parentRect.width - startRect.l; nh = nw / A4_RATIO; }
-            if (startRect.t + nh > parentRect.height) { nh = parentRect.height - startRect.t; nw = nh * A4_RATIO; }
-            if (nw < 50) return;
+            let nh = startRect.h + dy;
+
+            if (type === 'a4') {
+              // Aspect Lock check for A4
+              nh = nw / A4_RATIO;
+            }
+            // For 'free', we accept the independent dy change (nh)
+
+            // Bounds Check
+            if (startRect.l + nw > parentRect.width) { nw = parentRect.width - startRect.l; if (type == 'a4') nh = nw / A4_RATIO; }
+            if (startRect.t + nh > parentRect.height) { nh = parentRect.height - startRect.t; if (type == 'a4') nw = nh * A4_RATIO; }
+
+            if (nw < 30 || nh < 30) return; // Min size
+
             mask.style.width = nw + 'px';
             mask.style.height = nh + 'px';
           }
