@@ -485,12 +485,12 @@
           <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
           <div>拖拽或点击上传文件</div>
           <div style="font-size: 0.7rem; margin-top: 5px; opacity: 0.8">支持 PDF / JPG / PNG</div>
-          <input type="file" id="fileInput" class="file-input" accept=".pdf,image/*">
+          <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,image/*">
         </div>
         <div class="guide">
           <h3>📖 操作指南</h3>
           <ul>
-            <li><b>上传文件：</b>支持 A3 横版试卷或图片。</li>
+            <li><b>上传文件：</b>支持 A3 横版试卷或图片（支持批量上传）。</li>
             <li><b>添加裁切线：</b>适用于规则的左右分栏试卷。添加红线后，按线分割。</li>
             <li><b>添加 A4 遮罩：</b>锁定 A4 比例，适合标准 A4 提取。</li>
             <li><b>添加自由遮罩：</b><b>无比例限制</b>，可自由拉伸长宽，适合不规则或长条形内容。</li>
@@ -597,42 +597,52 @@
 
     // --- Core Handling ---
     document.getElementById('uploadBtn').onclick = () => fileInput.click();
-    fileInput.onchange = e => handleFile(e.target.files[0]);
+    fileInput.onchange = e => handleFiles(e.target.files);
 
-    async function handleFile(file) {
-      if (!file) return;
+    async function handleFiles(fileList) {
+      if (!fileList || fileList.length === 0) return;
       pages = []; currPageIdx = null; container.innerHTML = '';
       showLoading(true, '正在解析文件...');
 
+      // Sort files naturally: e.g. page_1.jpg, page_2.jpg, page_10.jpg
+      const sortedFiles = Array.from(fileList).sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+      );
+
       try {
-        if (file.type === 'application/pdf') {
-          const buf = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument(buf).promise;
-          for (let i = 1; i <= pdf.numPages; i++) {
-            updateProgress(i / pdf.numPages);
-            const page = await pdf.getPage(i);
-            const vp = page.getViewport({ scale: 1.5 }); // View Scale
+        let globalPageIndex = 0;
 
-            // High Res for Export
-            const hdVp = page.getViewport({ scale: 3.0 });
-            const cvs = document.createElement('canvas');
-            cvs.width = hdVp.width; cvs.height = hdVp.height;
-            await page.render({ canvasContext: cvs.getContext('2d'), viewport: hdVp }).promise;
+        for (const file of sortedFiles) {
+          if (file.type === 'application/pdf') {
+            const buf = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(buf).promise;
+            for (let i = 1; i <= pdf.numPages; i++) {
+              updateProgress((i / pdf.numPages) * 100); // Simple progress
+              const page = await pdf.getPage(i);
+              const vp = page.getViewport({ scale: 1.5 }); // View Scale
 
-            addPage(cvs.toDataURL('image/jpeg', 0.8), i - 1);
+              // High Res for Export
+              const hdVp = page.getViewport({ scale: 3.0 });
+              const cvs = document.createElement('canvas');
+              cvs.width = hdVp.width; cvs.height = hdVp.height;
+              await page.render({ canvasContext: cvs.getContext('2d'), viewport: hdVp }).promise;
+
+              addPage(cvs.toDataURL('image/jpeg', 0.8), globalPageIndex++);
+            }
+          } else if (file.type.startsWith('image/')) {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = () => reject(new Error('图片加载失败: ' + file.name));
+              img.src = url;
+            });
+            addPage(url, globalPageIndex++);
           }
-        } else {
-          const url = URL.createObjectURL(file);
-          const img = new Image();
-          await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = () => reject(new Error('图片加载失败'));
-            img.src = url;
-          });
-          addPage(url, 0); // Simple image
         }
       } catch (e) {
         alert('错误: ' + e.message);
+        console.error(e);
       }
       showLoading(false);
     }
