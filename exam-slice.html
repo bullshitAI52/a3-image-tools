@@ -5,6 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>A3 试卷拆分为 A4 工具</title>
+  <!-- FontAwesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -15,255 +17,243 @@
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      /* Matching project theme */
       min-height: 100vh;
       color: #333;
-      line-height: 1.6;
+      overflow-x: hidden;
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
     }
 
+    /* Header */
     .header {
       text-align: center;
-      margin-bottom: 30px;
       color: white;
+      margin-bottom: 20px;
+      flex-shrink: 0;
     }
 
     .header h1 {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      font-size: 2rem;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
     .header p {
-      font-size: 1.1rem;
       opacity: 0.9;
+      font-size: 0.9rem;
     }
 
-    .main-content {
+    /* Main Layout */
+    .workspace {
+      flex: 1;
       background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      display: flex;
       overflow: hidden;
-      margin-bottom: 20px;
+      position: relative;
     }
 
-    .upload-section {
-      padding: 30px;
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      color: white;
-      text-align: center;
+    /* Sidebar (Upload & Guide) */
+    .sidebar {
+      width: 300px;
+      background: #f8f9fa;
+      border-right: 1px solid #eee;
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
     }
 
     .upload-area {
-      border: 3px dashed rgba(255, 255, 255, 0.5);
-      border-radius: 20px;
-      padding: 40px 20px;
-      margin: 20px 0;
-      transition: all 0.3s ease;
+      padding: 30px 20px;
+      text-align: center;
+      background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+      color: white;
       cursor: pointer;
+      transition: all 0.3s;
     }
 
-    .upload-area:hover,
-    .upload-area.dragover {
-      border-color: rgba(255, 255, 255, 0.9);
-      background: rgba(255, 255, 255, 0.1);
-      transform: scale(1.01);
+    .upload-area:hover {
+      filter: brightness(1.05);
     }
 
     .upload-icon {
-      font-size: 3rem;
-      margin-bottom: 15px;
+      font-size: 2.5rem;
+      margin-bottom: 10px;
     }
 
     .file-input {
       display: none;
     }
 
-    .upload-text {
-      font-size: 1.2rem;
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
-
-    .upload-hint {
-      font-size: 0.9rem;
-      opacity: 0.8;
-    }
-
-    .instructions {
-      padding: 30px;
-      background: #f8f9fa;
-      border-bottom: 1px solid #e9ecef;
-    }
-
-    .instructions h3 {
-      color: #495057;
-      margin-bottom: 15px;
-      font-size: 1.2rem;
-    }
-
-    .instructions li {
-      margin-bottom: 8px;
+    .guide {
+      padding: 20px;
+      font-size: 0.85rem;
       color: #666;
-      font-size: 0.95rem;
+      overflow-y: auto;
+      flex: 1;
     }
 
+    .guide h3 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 1rem;
+    }
+
+    .guide li {
+      margin-bottom: 8px;
+      list-style-position: inside;
+    }
+
+    /* Canvas Area */
     .canvas-container {
+      flex: 1;
+      background: #c3cfe2;
+      /* Darker bg for contrast */
       padding: 30px;
-      max-height: 75vh;
       overflow-y: auto;
-      background: #f0f2f5;
       display: flex;
       flex-direction: column;
       align-items: center;
+      position: relative;
     }
 
+    /* Page Styles */
     .canvas-page {
-      position: relative;
-      margin-bottom: 30px;
-      border-radius: 8px;
-      overflow: hidden;
-      /* Hide overflow so frames don't poke out weirdly, though frames are inside wrapper */
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      /* Lighter shadow */
-      transition: all 0.2s ease;
       background: white;
-      user-select: none;
-      /* Prevent text selection */
+      margin-bottom: 30px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      position: relative;
+      transition: transform 0.2s;
+      transform-origin: center top;
     }
 
     .canvas-page.selected {
-      box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.5), 0 10px 30px rgba(0, 0, 0, 0.15);
-      transform: translateY(-2px);
+      box-shadow: 0 0 0 4px #007bff, 0 10px 30px rgba(0, 0, 0, 0.2);
+      z-index: 5;
     }
 
-    .page-header {
-      background: #343a40;
-      color: white;
-      padding: 10px 15px;
-      font-weight: 500;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.9rem;
-    }
-
-    .canvas-page.selected .page-header {
+    /* Badges */
+    .page-badge {
+      position: absolute;
+      top: -30px;
+      left: 0;
       background: #007bff;
-    }
-
-    .cut-lines-count {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 0.8rem;
-    }
-
-    canvas {
-      display: block;
-      background: #fff;
-    }
-
-    /* Cut Line Styles */
-    .cut-line {
-      position: absolute;
-      top: 0;
-      width: 4px;
-      height: 100%;
-      background: linear-gradient(to bottom, #ff4757, #ff6b81);
-      cursor: ew-resize;
-      z-index: 50;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
-    }
-
-    .cut-line:hover {
-      width: 6px;
-      background: #ff4757;
-    }
-
-    .cut-line::after {
-      content: '↔';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
       color: white;
+      padding: 4px 12px;
+      border-radius: 4px 4px 0 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    /* ================= A4 MASK STYLES ================= */
+    .a4-mask {
+      position: absolute;
+      background: rgba(33, 150, 243, 0.15);
+      border: 2px solid #2196F3;
+      cursor: move;
+      z-index: 100;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .a4-mask.active {
+      background: rgba(33, 150, 243, 0.25);
+      border-color: #1976D2;
+      z-index: 110;
+    }
+
+    /* Top-Left Badge (A4/Id) */
+    .mask-badge-a4 {
+      position: absolute;
+      top: -12px;
+      left: -12px;
+      width: 24px;
+      height: 24px;
+      background: #2196F3;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 10px;
       font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
       pointer-events: none;
     }
 
-    /* A4 Frame Styles */
-    .a4-frame {
+    /* Top-Right Close Button */
+    .mask-close {
       position: absolute;
-      border: 2px solid #28a745;
-      background: rgba(40, 167, 69, 0.1);
-      cursor: move;
-      z-index: 40;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    }
-
-    .a4-frame.active {
-      border-color: #218838;
-      background: rgba(40, 167, 69, 0.25);
-      z-index: 45;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5), 0 8px 20px rgba(0, 0, 0, 0.3);
-    }
-
-    .a4-frame-handle {
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      background: #28a745;
-      border: 2px solid white;
-      border-radius: 50%;
-      bottom: -8px;
-      right: -8px;
-      cursor: se-resize;
-      z-index: 46;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-
-    .a4-frame-delete {
-      position: absolute;
-      top: -10px;
-      right: -10px;
-      width: 20px;
-      height: 20px;
+      top: -12px;
+      right: -12px;
+      width: 24px;
+      height: 24px;
       background: #dc3545;
       color: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
       font-size: 12px;
+      cursor: pointer;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-      z-index: 47;
+      transition: transform 0.2s;
+      z-index: 120;
     }
 
-    .a4-frame-delete:hover {
+    .mask-close:hover {
       transform: scale(1.1);
       background: #c82333;
     }
 
-    .a4-frame-label {
+    /* Resize Handle */
+    .mask-resize {
       position: absolute;
-      top: 5px;
-      left: 5px;
-      font-size: 10px;
-      color: #155724;
-      background: rgba(255, 255, 255, 0.8);
-      padding: 2px 5px;
-      border-radius: 3px;
-      pointer-events: none;
+      width: 20px;
+      height: 20px;
+      background: #2196F3;
+      border: 3px solid white;
+      border-radius: 50%;
+      bottom: -10px;
+      right: -10px;
+      cursor: se-resize;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      z-index: 120;
     }
 
-    /* Controls */
+    /* ================= CUT LINE STYLES ================= */
+    .cut-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: red;
+      z-index: 90;
+      cursor: ew-resize;
+    }
+
+    .cut-line::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      background: red;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    /* ================= FLOATING CONTROLS ================= */
     .controls {
       position: fixed;
       bottom: 30px;
@@ -274,114 +264,91 @@
       z-index: 1000;
     }
 
-    .control-btn {
-      background: white;
-      color: #333;
-      border: 1px solid #ddd;
-      padding: 12px 20px;
-      border-radius: 8px;
+    .float-btn {
+      border: none;
+      outline: none;
+      height: 44px;
+      padding: 0 20px;
+      border-radius: 22px;
       font-size: 14px;
       font-weight: 600;
+      color: white;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      transition: all 0.2s ease;
-      min-width: 180px;
       display: flex;
       align-items: center;
+      justify-content: flex-start;
       gap: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s, width 0.2s;
+      min-width: 160px;
     }
 
-    .control-btn i {
-      width: 20px;
+    .float-btn:hover {
+      transform: translateX(-5px);
+    }
+
+    .float-btn i {
+      width: 16px;
       text-align: center;
     }
 
-    .control-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-      background: #f8f9fa;
-      color: #007bff;
-      border-color: #007bff;
+    .btn-blue {
+      background: #007bff;
     }
 
-    .control-btn.primary {
-      background: linear-gradient(135deg, #007bff, #0062cc);
-      color: white;
-      border: none;
+    .btn-blue:hover {
+      background: #0069d9;
     }
 
-    .control-btn.primary:hover {
-      background: linear-gradient(135deg, #0069d9, #0056b3);
-      color: white;
+    .btn-info {
+      background: #17a2b8;
     }
 
-    .control-btn.export {
-      background: linear-gradient(135deg, #28a745, #1e7e34);
-      color: white;
-      border: none;
-      padding: 15px 25px;
-      font-size: 1.1em;
+    /* For Mask */
+    .btn-info:hover {
+      background: #138496;
     }
 
-    .control-btn.export:hover {
-      background: linear-gradient(135deg, #218838, #1c7430);
+    .btn-green {
+      background: #28a745;
     }
 
-    .control-btn:disabled {
-      background: #e9ecef;
-      color: #adb5bd;
-      border-color: #dee2e6;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
+    .btn-green:hover {
+      background: #218838;
     }
 
-    /* Loading & Global Messages */
-    .loading-overlay {
+    .btn-danger {
+      background: #dc3545;
+    }
+
+    /* Loading Overlay */
+    .loading-mask {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 2000;
       display: flex;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
       color: white;
-      z-index: 2000;
       visibility: hidden;
       opacity: 0;
-      transition: all 0.3s;
+      transition: 0.3s;
     }
 
-    .loading-overlay.visible {
+    .loading-mask.visible {
       visibility: visible;
       opacity: 1;
-      backdrop-filter: blur(5px);
     }
 
-    .loading-spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid rgba(255, 255, 255, 0.2);
-      border-top: 4px solid #fff;
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin-bottom: 20px;
-    }
-
-    .progress-bar {
-      width: 300px;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-top: 15px;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: #28a745;
-      width: 0%;
-      transition: width 0.3s;
     }
 
     @keyframes spin {
@@ -389,110 +356,88 @@
         transform: rotate(360deg);
       }
     }
-
-    .message-toast {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 12px 25px;
-      border-radius: 30px;
-      color: white;
-      font-weight: 500;
-      font-size: 0.95rem;
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-      z-index: 3000;
-      animation: slideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .message-toast.error {
-      background: #dc3545;
-    }
-
-    .message-toast.success {
-      background: #28a745;
-    }
-
-    @keyframes slideDown {
-      from {
-        transform: translate(-50%, -20px);
-        opacity: 0;
-      }
-
-      to {
-        transform: translate(-50%, 0);
-        opacity: 1;
-      }
-    }
-
-    .empty-state {
-      text-align: center;
-      color: #999;
-      margin-top: 50px;
-    }
-
-    .empty-state i {
-      font-size: 4rem;
-      opacity: 0.3;
-      margin-bottom: 15px;
-      display: block;
-    }
   </style>
-  <!-- Using FontAwesome for icons -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 
 <body>
+
   <div class="container">
     <div class="header">
-      <h1>📄 A3试卷拆分为A4工具</h1>
-      <p>智能裁剪 / 框选提取 / 高清导出 / 专业打印</p>
+      <h1>📄 A3 试卷拆分为 A4 工具</h1>
+      <p>智能拖拽 / 遮罩框选 / 高清修复 / 批量处理</p>
     </div>
 
-    <div class="main-content">
-      <div class="upload-section">
-        <div class="upload-area" id="uploadArea">
+    <div class="workspace">
+      <div class="sidebar">
+        <div class="upload-area" id="uploadBtn">
           <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
-          <div class="upload-text">点击或拖拽文件到此处</div>
-          <div class="upload-hint">支持 PDF (高清解析) 及各种常见图片格式</div>
-          <input type="file" id="fileInput" class="file-input"
-            accept=".pdf,image/png,image/jpeg,image/jpg,image/gif,image/bmp" />
+          <div>拖拽或点击上传文件</div>
+          <div style="font-size: 0.7rem; margin-top: 5px; opacity: 0.8">支持 PDF / JPG / PNG</div>
+          <input type="file" id="fileInput" class="file-input" accept=".pdf,image/*">
+        </div>
+        <div class="guide">
+          <h3>📖 操作指南</h3>
+          <ul>
+            <li><b>上传文件：</b>支持 A3 横版试卷或图片。</li>
+            <li><b>添加裁切线：</b>适用于规则的左右分栏试卷。添加红线后，按线分割。</li>
+            <li><b>添加 A4 遮罩：</b>适用于不规则内容或三栏试卷。
+              <ul>
+                <li>点击“添加 A4 遮罩”生成蓝色选框。</li>
+                <li>拖动遮罩覆盖需要提取的题目区域。</li>
+                <li>拖动右下角圆点可调整大小（锁定 A4 比例）。</li>
+              </ul>
+            </li>
+            <li><b>导出：</b>
+              <ul>
+                <li><b>导出裁切线 PDF：</b>按红色分割线逻辑生成。</li>
+                <li><b>导出遮罩 PDF：</b>仅导出蓝色遮罩选中的内容。</li>
+              </ul>
+            </li>
+          </ul>
         </div>
       </div>
-
-      <div class="instructions">
-        <h3>💡 操作提示</h3>
-        <ul>
-          <li><strong>两种模式：</strong>支持"裁切线分割"（适合标准两栏/三栏）和"A4框选提取"（适合不规则布局）。</li>
-          <li><strong>裁切线：</strong>添加红线，导出时按线左右/上下分割。</li>
-          <li><strong>A4框选：</strong>添加绿色框，导出时仅保留框内内容，自动适配A4比例。</li>
-          <li><strong>混用规则：</strong>如果页面上有"A4框选"，将优先导出框选内容，忽略裁切线。</li>
-        </ul>
-      </div>
-
       <div class="canvas-container" id="canvasContainer">
-        <div class="empty-state">
-          <i class="fas fa-file-pdf"></i>
-          <h3>等待上传文件...</h3>
-          <p>上传后将显示预览画面</p>
+        <div style="text-align: center; margin-top: 100px; color: #666;">
+          <i class="fas fa-file-pdf" style="font-size: 4rem; opacity: 0.3; margin-bottom: 20px;"></i>
+          <p>请上传文件开始处理</p>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Functions Buttons -->
   <div class="controls">
-    <button class="control-btn" id="selectAllBtn"><i class="fas fa-check-double"></i> 全部选中并加线</button>
-    <button class="control-btn primary" id="addCutLineBtn"><i class="fas fa-columns"></i> 添加垂直裁切线</button>
-    <button class="control-btn primary" id="addA4FrameBtn"><i class="fas fa-crop-alt"></i> 添加 A4 选框 (推荐)</button>
-    <button class="control-btn" id="clearPageBtn"><i class="fas fa-eraser"></i> 清除本页设置</button>
-    <button class="control-btn export" id="exportBtn"><i class="fas fa-file-export"></i> 导出高清 PDF</button>
+    <button class="float-btn btn-blue" onclick="selectAll()">
+      <i class="fas fa-check-double"></i> 全部选中并加线
+    </button>
+    <button class="float-btn btn-blue" onclick="addCutLine()">
+      <i class="fas fa-arrows-alt-h"></i> 添加裁切线
+    </button>
+    <button class="float-btn btn-danger" onclick="clearPage()">
+      <i class="fas fa-trash"></i> 删除本页设置
+    </button>
+
+    <!-- Mask Button (Highlighted) -->
+    <button class="float-btn btn-info" onclick="addMask()" style="transform: scale(1.05); margin-top: 10px;">
+      <i class="fas fa-crop-simple"></i> 添加 A4 遮罩
+    </button>
+
+    <!-- Exports -->
+    <button class="float-btn btn-green" onclick="exportCutLines()" style="margin-top: 10px;">
+      <i class="fas fa-cut"></i> 导出裁切线PDF
+    </button>
+    <button class="float-btn btn-green" onclick="exportMasks()">
+      <i class="fas fa-layer-group"></i> 导出遮罩PDF
+    </button>
   </div>
 
-  <div class="loading-overlay" id="loadingOverlay">
-    <div class="loading-spinner"></div>
-    <div id="loadingText">处理中...</div>
-    <div class="progress-bar">
-      <div class="progress-fill" id="progressFill"></div>
+  <!-- Loading -->
+  <div class="loading-mask" id="loading">
+    <div class="spinner"></div>
+    <div style="margin-top: 15px;" id="loadingText">处理中...</div>
+    <div
+      style="width: 200px; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; margin-top: 10px; overflow: hidden;">
+      <div id="progressBar" style="width: 0%; height: 100%; background: #28a745; transition: width 0.3s;"></div>
     </div>
   </div>
 
@@ -504,412 +449,324 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
     // State
-    let pages = []; // { wrapper, canvas, ctx, originalImage(DataURL), cutLines[], frames[], pageIndex }
-    let currentPageIndex = null;
-    let isDragging = false;
-    let activeItem = null; // { type: 'line'|'frame', obj, ... }
+    let pages = []; // { wrapper, originalImg, w, h, lines: [], masks: [], index }
+    let currPageIdx = null;
+    const A4_RATIO = 210 / 297;
 
-    // Constants
-    const A4_RATIO = 210 / 297; // Width / Height
+    // Elements
+    const container = document.getElementById('canvasContainer');
+    const fileInput = document.getElementById('fileInput');
 
-    // UI Elements
-    const els = {
-      container: document.getElementById('canvasContainer'),
-      fileInput: document.getElementById('fileInput'),
-      uploadArea: document.getElementById('uploadArea'),
-      loading: document.getElementById('loadingOverlay'),
-      loadingText: document.getElementById('loadingText'),
-      progress: document.getElementById('progressFill'),
-      btns: {
-        selectAll: document.getElementById('selectAllBtn'),
-        addCut: document.getElementById('addCutLineBtn'),
-        addFrame: document.getElementById('addA4FrameBtn'),
-        clear: document.getElementById('clearPageBtn'),
-        export: document.getElementById('exportBtn')
-      }
-    };
-
-    // --- Core Logic ---
-
-    // 1. File Handling
-    els.fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
-    els.uploadArea.addEventListener('click', () => els.fileInput.click());
-    els.uploadArea.addEventListener('dragover', e => { e.preventDefault(); els.uploadArea.classList.add('dragover'); });
-    els.uploadArea.addEventListener('dragleave', () => els.uploadArea.classList.remove('dragover'););
-    els.uploadArea.addEventListener('drop', e => {
-      e.preventDefault(); els.uploadArea.classList.remove('dragover');
-      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-    });
+    // --- Core Handling ---
+    document.getElementById('uploadBtn').onclick = () => fileInput.click();
+    fileInput.onchange = e => handleFile(e.target.files[0]);
 
     async function handleFile(file) {
       if (!file) return;
-      pages = []; currentPageIndex = null; els.container.innerHTML = '';
+      pages = []; currPageIdx = null; container.innerHTML = '';
+      showLoading(true, '正在解析文件...');
 
-      showLoading('正在解析文件，启用高清渲染模式 (300 DPI)...', 0);
       try {
-        if (file.type === 'application/pdf') await processPDF(file);
-        else if (file.type.startsWith('image/')) await processImage(file);
-        else throw new Error('不支持的文件格式');
+        if (file.type === 'application/pdf') {
+          const buf = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument(buf).promise;
+          for (let i = 1; i <= pdf.numPages; i++) {
+            updateProgress(i / pdf.numPages);
+            const page = await pdf.getPage(i);
+            const vp = page.getViewport({ scale: 1.5 }); // View Scale
 
-        showToast('文件加载成功！点击页面可进行操作。', 'success');
-      } catch (err) {
-        console.error(err);
-        showToast(err.message, 'error');
-      } finally {
-        hideLoading();
+            // High Res for Export
+            const hdVp = page.getViewport({ scale: 3.0 });
+            const cvs = document.createElement('canvas');
+            cvs.width = hdVp.width; cvs.height = hdVp.height;
+            await page.render({ canvasContext: cvs.getContext('2d'), viewport: hdVp }).promise;
+
+            addPage(cvs.toDataURL('image/jpeg', 0.8), i - 1);
+          }
+        } else {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          await new Promise(r => img.onload = r); img.src = url;
+          addPage(url, 0); // Simple image
+        }
+      } catch (e) {
+        alert('错误: ' + e.message);
       }
+      showLoading(false);
     }
 
-    async function processPDF(file) {
-      const buffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument(buffer).promise;
-
-      for (let i = 0; i < pdf.numPages; i++) {
-        updateProgress((i / pdf.numPages) * 100, `解析页面 ${i + 1}/${pdf.numPages}...`);
-        const page = await pdf.getPage(i + 1);
-
-        // Preview Render (Low Res for UI)
-        const viewport = page.getViewport({ scale: 1.0 }); // UI scale
-        const pageData = createPageUI(viewport.width, viewport.height, i);
-        await page.render({ canvasContext: pageData.ctx, viewport }).promise;
-
-        // High Res Capture (For Export) - Crucial for "HD" requirement
-        // Using logic scale 3.0 ~ 200-300 DPI
-        const hdScale = 3.0;
-        const hdViewport = page.getViewport({ scale: hdScale });
-        const hdCanvas = document.createElement('canvas');
-        hdCanvas.width = hdViewport.width;
-        hdCanvas.height = hdViewport.height;
-        await page.render({ canvasContext: hdCanvas.getContext('2d'), viewport: hdViewport }).promise;
-
-        pageData.originalImage = hdCanvas.toDataURL('image/jpeg', 0.9); // Store as JPEG to save memory
-        pages.push(pageData);
-      }
-    }
-
-    async function processImage(file) {
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve; img.onerror = reject; img.src = url;
-      });
-
-      // If image is huge, maybe scale down logic? For now keep original.
-      const pageData = createPageUI(img.naturalWidth, img.naturalHeight, 0);
-      pageData.ctx.drawImage(img, 0, 0);
-      pageData.originalImage = img.src; // Keep Blob URL or Data URL
-      pages.push(pageData);
-    }
-
-    function createPageUI(w, h, idx) {
-      // Adjust display width to fit container (responsive) but keep coordinate mapping
-      // We'll trust CSS to shrink the canvas visual, but canvas width/height attrs remain true to viewport (or 1.0 scale)
-      // Actually, better to keep canvas logical size = viewport size. CSS will scale it down.
-
+    function addPage(imgSrc, idx) {
       const wrapper = document.createElement('div');
       wrapper.className = 'canvas-page';
+      if (idx === 0) { wrapper.classList.add('selected'); currPageIdx = 0; }
+      wrapper.onclick = (e) => {
+        if (e.target.closest('.mask-close')) return;
+        selectPage(idx);
+      };
 
-      const header = document.createElement('div');
-      header.className = 'page-header';
-      header.innerHTML = `<span>第 ${idx + 1} 页</span><span class="cut-lines-count">未设置</span>`;
-      if (idx === 0) wrapper.classList.add('selected');
+      const img = document.createElement('img');
+      img.src = imgSrc;
+      img.style.width = '100%';
+      img.style.display = 'block';
+      img.draggable = false;
 
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      // visual style
-      canvas.style.width = '100%'; canvas.style.height = 'auto';
+      const badge = document.createElement('div');
+      badge.className = 'page-badge';
+      badge.innerText = `第 ${idx + 1} 页`;
 
-      wrapper.appendChild(header);
-      wrapper.appendChild(canvas);
-      els.container.appendChild(wrapper);
+      wrapper.appendChild(badge);
+      wrapper.appendChild(img);
+      container.appendChild(wrapper);
 
-      const pageObj = { wrapper, canvas, ctx: canvas.getContext('2d'), originalImage: null, cutLines: [], frames: [], pageIndex: idx };
-      wrapper.addEventListener('click', e => {
-        if (e.target.closest('.control-btn')) return; // ignore internal buttons if any
-        selectPage(pageObj);
+      pages.push({
+        wrapper,
+        src: imgSrc,
+        lines: [],
+        masks: []
       });
-
-      if (idx === 0) currentPageIndex = 0;
-      return pageObj;
     }
 
-    function selectPage(page) {
+    function selectPage(idx) {
       pages.forEach(p => p.wrapper.classList.remove('selected'));
-      page.wrapper.classList.add('selected');
-      currentPageIndex = page.pageIndex;
+      pages[idx].wrapper.classList.add('selected');
+      currPageIdx = idx;
     }
 
-    // --- Interaction Logic ---
-
-    // 1. Cut Lines
-    els.btns.addCut.addEventListener('click', () => {
-      if (currentPageIndex === null) return showToast('请先选中一个页面', 'error');
-      addCutLine(pages[currentPageIndex]);
-    });
-
-    function addCutLine(page) {
+    // --- Cut Line Logic ---
+    window.addCutLine = () => {
+      if (currPageIdx === null) return alert('请先点选一页');
+      const page = pages[currPageIdx];
       const line = document.createElement('div');
       line.className = 'cut-line';
       line.style.left = '50%';
-      page.wrapper.appendChild(line);
 
-      const lineObj = { el: line, ratio: 0.5 };
-      page.cutLines.push(lineObj);
-      updatePageStatus(page);
-
-      // Dragging
-      line.addEventListener('mousedown', e => {
+      // Drag logic
+      let dragging = false;
+      line.onmousedown = e => {
+        dragging = true;
         e.stopPropagation();
-        startDragging(e, page, 'line', lineObj);
-        selectPage(page);
-      });
-    }
-
-    // 2. A4 Frames (New Feature)
-    els.btns.addFrame.addEventListener('click', () => {
-      if (currentPageIndex === null) return showToast('请先选中一个页面', 'error');
-      addA4Frame(pages[currentPageIndex]);
-    });
-
-    function addA4Frame(page) {
-      const wrapperRect = page.wrapper.getBoundingClientRect(); // Visual dimensions
-      // Note: The logic handles (drag) work on visual pixels (wrapper DOM coordinates).
-      // On export, we must map these (%) to the originalImage pixels.
-
-      // Initial size: 80% height, width based on A4 ratio
-      let h = wrapperRect.height * 0.8;
-      let w = h * A4_RATIO;
-      if (w > wrapperRect.width * 0.9) { w = wrapperRect.width * 0.8; h = w / A4_RATIO; }
-
-      const frame = document.createElement('div');
-      frame.className = 'a4-frame';
-      frame.style.width = w + 'px'; frame.style.height = h + 'px';
-      frame.style.top = (wrapperRect.height - h) / 2 + 'px';
-      frame.style.left = (wrapperRect.width - w) / 2 + 'px';
-      frame.innerHTML = '<div class="a4-frame-label">A4</div><div class="a4-frame-delete"><i class="fas fa-times"></i></div><div class="a4-frame-handle"></div>';
-
-      page.wrapper.appendChild(frame);
-      const frameObj = { el: frame, x: 0, y: 0, w: 0, h: 0 }; // Values updated on interaction end or export
-      page.frames.push(frameObj);
-      updatePageStatus(page);
-
-      // Interaction
-      const delBtn = frame.querySelector('.a4-frame-delete');
-      const handle = frame.querySelector('.a4-frame-handle');
-
-      delBtn.onclick = e => {
-        e.stopPropagation();
-        frame.remove();
-        page.frames = page.frames.filter(f => f !== frameObj);
-        updatePageStatus(page);
+        const rect = page.wrapper.getBoundingClientRect();
+        const onMove = ev => {
+          if (!dragging) return;
+          let x = ev.clientX - rect.left;
+          x = Math.max(0, Math.min(x, rect.width));
+          line.style.left = (x / rect.width * 100) + '%';
+        };
+        const onUp = () => { dragging = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
       };
 
-      frame.addEventListener('mousedown', e => {
+      page.wrapper.appendChild(line);
+      page.lines.push(line);
+    };
+
+    // --- Mask Logic (Matches Reference) ---
+    window.addMask = () => {
+      if (currPageIdx === null) return alert('请先点选一页');
+      const page = pages[currPageIdx];
+      const rect = page.wrapper.getBoundingClientRect();
+
+      // Initial size (A4 ratio)
+      let w = rect.width * 0.4;
+      let h = w / A4_RATIO;
+
+      const mask = document.createElement('div');
+      mask.className = 'a4-mask';
+      mask.style.width = w + 'px'; mask.style.height = h + 'px';
+      mask.style.top = '10%'; mask.style.left = '10%';
+      mask.innerHTML = `
+            <div class="mask-badge-a4">A4</div>
+            <div class="mask-close"><i class="fas fa-times"></i></div>
+            <div class="mask-resize"></div>
+        `;
+
+      mask.querySelector('.mask-close').onclick = e => {
         e.stopPropagation();
-        const isResize = e.target === handle;
-        startDragging(e, page, isResize ? 'frame-resize' : 'frame-move', frameObj);
-        selectPage(page);
+        mask.remove();
+        page.masks = page.masks.filter(m => m !== mask);
+      };
+
+      // Interaction (Drag & Resize)
+      let mode = null; // 'drag' | 'resize'
+      let startX, startY, startRect;
+
+      mask.onmousedown = e => {
+        e.stopPropagation();
+        selectPage(currPageIdx);
+
         // Highlight
-        page.wrapper.querySelectorAll('.a4-frame').forEach(f => f.classList.remove('active'));
-        frame.classList.add('active');
-      });
-    }
+        page.wrapper.querySelectorAll('.a4-mask').forEach(m => m.classList.remove('active'));
+        mask.classList.add('active');
 
-    // Common Drag Handler
-    function startDragging(e, page, type, obj) {
-      isDragging = true;
-      const wrapperRect = page.wrapper.getBoundingClientRect();
-      const startX = e.clientX;
-      const startY = e.clientY;
+        if (e.target.classList.contains('mask-resize')) mode = 'resize';
+        else mode = 'drag';
 
-      // Initial values defined by DOM style
-      const startLeft = parseFloat(obj.el.style.left);
-      const startTop = parseFloat(obj.el.style.top || 0);
-      const startW = parseFloat(obj.el.style.width || 0);
-      const startH = parseFloat(obj.el.style.height || 0);
+        startX = e.clientX; startY = e.clientY;
+        startRect = {
+          l: mask.offsetLeft, t: mask.offsetTop,
+          w: mask.offsetWidth, h: mask.offsetHeight
+        };
 
-      function onMove(ev) {
-        if (!isDragging) return;
-        const dx = ev.clientX - startX;
-        const dy = ev.clientY - startY;
+        const parentRect = page.wrapper.getBoundingClientRect();
 
-        if (type === 'line') {
-          let newLeft = startLeft + dx; // px in wrapper
-          newLeft = Math.max(0, Math.min(newLeft, wrapperRect.width));
-          obj.el.style.left = newLeft + 'px';
-          obj.ratio = newLeft / wrapperRect.width;
-        }
-        else if (type === 'frame-move') {
-          let nl = startLeft + dx;
-          let nt = startTop + dy;
-          // Bound check
-          nl = Math.max(0, Math.min(nl, wrapperRect.width - startW));
-          nt = Math.max(0, Math.min(nt, wrapperRect.height - startH));
-          obj.el.style.left = nl + 'px';
-          obj.el.style.top = nt + 'px';
-        }
-        else if (type === 'frame-resize') {
-          let nw = startW + dx;
-          // Aspect lock
-          let nh = nw / A4_RATIO;
+        const onMove = ev => {
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
 
-          // Bounds
-          if (startLeft + nw > wrapperRect.width) { nw = wrapperRect.width - startLeft; nh = nw / A4_RATIO; }
-          if (startTop + nh > wrapperRect.height) { nh = wrapperRect.height - startTop; nw = nh * A4_RATIO; }
-          if (nw < 50) return; // Min size
+          if (mode === 'drag') {
+            let nl = startRect.l + dx;
+            let nt = startRect.t + dy;
+            nl = Math.max(0, Math.min(nl, parentRect.width - startRect.w));
+            nt = Math.max(0, Math.min(nt, parentRect.height - startRect.h));
+            mask.style.left = nl + 'px';
+            mask.style.top = nt + 'px';
+          } else {
+            let nw = startRect.w + dx;
+            // Aspect Lock check
+            let nh = nw / A4_RATIO;
 
-          obj.el.style.width = nw + 'px';
-          obj.el.style.height = nh + 'px';
-        }
-      }
+            if (startRect.l + nw > parentRect.width) { nw = parentRect.width - startRect.l; nh = nw / A4_RATIO; }
+            if (startRect.t + nh > parentRect.height) { nh = parentRect.height - startRect.t; nw = nh * A4_RATIO; }
+            if (nw < 50) return;
 
-      function onUp() {
-        isDragging = false;
-        window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('mouseup', onUp);
-      }
-
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
-    }
-
-    // 3. Clear & Select All
-    els.btns.clear.addEventListener('click', () => {
-      if (currentPageIndex === null) return;
-      const p = pages[currentPageIndex];
-      p.cutLines.forEach(l => l.el.remove()); p.cutLines = [];
-      p.frames.forEach(f => f.el.remove()); p.frames = [];
-      updatePageStatus(p);
-    });
-
-    els.btns.selectAll.addEventListener('click', () => {
-      if (!pages.length) return showToast('无页面', 'error');
-      pages.forEach(p => {
-        // clear old
-        p.cutLines.forEach(l => l.el.remove()); p.cutLines = [];
-        // add one center line
-        addCutLine(p);
-      });
-      showToast('已重置所有页面为中间分割', 'success');
-    });
-
-    function updatePageStatus(page) {
-      const header = page.wrapper.querySelector('.cut-lines-count');
-      const l = page.cutLines.length;
-      const f = page.frames.length;
-      if (f > 0) header.textContent = `A4选框: ${f}个 (优先导出)`;
-      else header.textContent = `裁切线: ${l}条`;
-    }
-
-    // --- Export Logic ---
-    els.btns.export.addEventListener('click', async () => {
-      if (pages.length === 0) return showToast('无内容', 'error');
-      showLoading('🚀 正在生成高清 PDF...', 0);
-
-      try {
-        const { jsPDF } = jspdf;
-        const pdf = new jsPDF('p', 'pt', 'a4');
-        const pgW = pdf.internal.pageSize.getWidth();
-        const pgH = pdf.internal.pageSize.getHeight();
-        let hasPages = false;
-
-        for (let i = 0; i < pages.length; i++) {
-          updateProgress((i / pages.length) * 100, `处理第 ${i + 1}/${pages.length} 页...`);
-          const page = pages[i];
-          const bgImg = new Image();
-          bgImg.src = page.originalImage;
-          await new Promise(r => bgImg.onload = r);
-
-          // Calculate mappings: Image Pixels vs Wrapper Pixels
-          const wrapperRect = page.wrapper.getBoundingClientRect();
-          const scaleX = bgImg.naturalWidth / wrapperRect.width;
-          const scaleY = bgImg.naturalHeight / wrapperRect.height;
-
-          // --- Strategy A: Frames ---
-          if (page.frames.length > 0) {
-            // Sort frames top-left to bottom-rightish
-            const sortedFrames = [...page.frames].sort((a, b) => {
-              const rA = a.el.getBoundingClientRect();
-              const rB = b.el.getBoundingClientRect();
-              return (rA.top - rB.top) || (rA.left - rB.left);
-            });
-
-            for (let f of sortedFrames) {
-              if (hasPages) pdf.addPage();
-              hasPages = true;
-
-              // Get DOM rect relative to wrapper
-              const fStyle = window.getComputedStyle(f.el);
-              const fx = parseFloat(fStyle.left);
-              const fy = parseFloat(fStyle.top);
-              const fw = parseFloat(fStyle.width);
-              const fh = parseFloat(fStyle.height);
-
-              // Map to Source Image
-              const sx = fx * scaleX;
-              const sy = fy * scaleY;
-              const sw = fw * scaleX;
-              const sh = fh * scaleY;
-
-              // Crop
-              const cvs = document.createElement('canvas');
-              cvs.width = sw; cvs.height = sh;
-              cvs.getContext('2d').drawImage(bgImg, sx, sy, sw, sh, 0, 0, sw, sh);
-
-              pdf.addImage(cvs.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pgW, pgH);
-            }
+            mask.style.width = nw + 'px';
+            mask.style.height = nh + 'px';
           }
-          // --- Strategy B: Cut Lines ---
-          else {
-            // Default to 1 slice if no lines
-            const sortedLines = [...page.cutLines].sort((a, b) => a.ratio - b.ratio);
-            const ratios = [0, ...sortedLines.map(l => l.ratio), 1];
+        };
+        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+      };
 
-            for (let j = 0; j < ratios.length - 1; j++) {
-              if (hasPages) pdf.addPage();
-              hasPages = true;
+      page.wrapper.appendChild(mask);
+      page.masks.push(mask);
+    };
 
-              const r1 = ratios[j];
-              const r2 = ratios[j + 1];
-
-              const sx = r1 * bgImg.naturalWidth;
-              const sy = 0;
-              const sw = (r2 - r1) * bgImg.naturalWidth;
-              const sh = bgImg.naturalHeight;
-
-              const cvs = document.createElement('canvas');
-              cvs.width = sw; cvs.height = sh;
-              cvs.getContext('2d').drawImage(bgImg, sx, sy, sw, sh, 0, 0, sw, sh);
-
-              // Fit to PDF
-              pdf.addImage(cvs.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pgW, pgH);
-            }
-          }
-        }
-
-        pdf.save('A3_Splitted_Exam.pdf');
-        showToast('导出成功！', 'success');
-      } catch (e) {
-        console.error(e);
-        showToast('导出失败: ' + e.message, 'error');
-      } finally {
-        hideLoading();
+    // --- Helpers ---
+    window.selectAll = () => {
+      if (pages.length === 0) return;
+      if (confirm('确定要清除所有设置并为每页添加一条中间裁切线吗？')) {
+        pages.forEach((p, i) => {
+          currPageIdx = i; clearPage(); addCutLine();
+        });
       }
-    });
+    };
 
-    // Helpers
-    function showLoading(txt, pct) { els.loading.classList.add('visible'); updateProgress(pct, txt); }
-    function hideLoading() { els.loading.classList.remove('visible'); }
-    function updateProgress(pct, txt) {
-      if (txt) els.loadingText.innerText = txt;
-      els.progress.style.width = pct + '%';
+    window.clearPage = () => {
+      if (currPageIdx === null) return;
+      const p = pages[currPageIdx];
+      p.lines.forEach(el => el.remove()); p.lines = [];
+      p.masks.forEach(el => el.remove()); p.masks = [];
+    };
+
+    // --- Exports ---
+    async function getBaseImage(page) {
+      const img = new Image();
+      img.src = page.src;
+      await new Promise(r => img.onload = r);
+      return img;
     }
-    function showToast(msg, type) {
-      const t = document.createElement('div');
-      t.className = `message-toast ${type}`;
-      t.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${msg}`;
-      document.body.appendChild(t);
-      setTimeout(() => t.remove(), 3000);
+
+    // 1. Export Cut Lines
+    window.exportCutLines = async () => {
+      if (pages.length === 0) return;
+      showLoading(true, '正在生成裁切线 PDF...');
+      const doc = new jspdf.jsPDF('p', 'pt', 'a4');
+      const pgW = doc.internal.pageSize.getWidth();
+      const pgH = doc.internal.pageSize.getHeight();
+      let added = false;
+
+      for (const p of pages) {
+        const img = await getBaseImage(p);
+        // Sort lines
+        const lines = p.lines.map(l => parseFloat(l.style.left) / 100).sort((a, b) => a - b);
+        const ratios = [0, ...lines, 1];
+
+        for (let i = 0; i < ratios.length - 1; i++) {
+          const r1 = ratios[i];
+          const r2 = ratios[i + 1];
+          if (r2 - r1 < 0.01) continue;
+
+          if (added) doc.addPage(); added = true;
+
+          const cvs = document.createElement('canvas');
+          // Target width is slice width, target height is full height
+          const sw = img.naturalWidth * (r2 - r1);
+          const sh = img.naturalHeight;
+          cvs.width = sw; cvs.height = sh;
+
+          cvs.getContext('2d').drawImage(img,
+            img.naturalWidth * r1, 0, sw, sh,
+            0, 0, sw, sh
+          );
+
+          doc.addImage(cvs.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pgW, pgH);
+        }
+      }
+      doc.save('cut_lines_export.pdf');
+      showLoading(false);
+    };
+
+    // 2. Export Masks
+    window.exportMasks = async () => {
+      if (pages.length === 0) return;
+      // Verify we have masks
+      const totalMasks = pages.reduce((acc, p) => acc + p.masks.length, 0);
+      if (totalMasks === 0) return alert('未找到任何遮罩！请先添加 A4 遮罩。');
+
+      showLoading(true, '正在生成遮罩 PDF...');
+      const doc = new jspdf.jsPDF('p', 'pt', 'a4');
+      const pgW = doc.internal.pageSize.getWidth();
+      const pgH = doc.internal.pageSize.getHeight();
+      let added = false;
+
+      for (const p of pages) {
+        if (p.masks.length === 0) continue;
+        const img = await getBaseImage(p);
+
+        // Wrapper dimensions for mapping
+        const wr = p.wrapper.getBoundingClientRect();
+        const scaleX = img.naturalWidth / wr.width;
+        // scaleY should be same if aspect maintained, but let's calc to be safe
+        const scaleY = img.naturalHeight / wr.height;
+
+        // Sort masks
+        const masks = [...p.masks].sort((a, b) => (a.offsetTop - b.offsetTop) || (a.offsetLeft - b.offsetLeft));
+
+        for (const m of masks) {
+          if (added) doc.addPage(); added = true;
+
+          // Get geometry relative to wrapper
+          const mx = m.offsetLeft;
+          const my = m.offsetTop;
+          const mw = m.offsetWidth;
+          const mh = m.offsetHeight;
+
+          // Map to source image
+          const sx = mx * scaleX;
+          const sy = my * scaleY;
+          const sw = mw * scaleX;
+          const sh = mh * scaleY;
+
+          const cvs = document.createElement('canvas');
+          cvs.width = sw; cvs.height = sh;
+          cvs.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+          doc.addImage(cvs.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pgW, pgH);
+        }
+      }
+      doc.save('masks_export.pdf');
+      showLoading(false);
+    };
+
+    // Utils
+    function showLoading(show, txt) {
+      document.getElementById('loading').className = show ? 'loading-mask visible' : 'loading-mask';
+      if (txt) document.getElementById('loadingText').innerText = txt;
+    }
+    function updateProgress(pct) {
+      document.getElementById('progressBar').style.width = (pct * 100) + '%';
     }
 
   </script>
