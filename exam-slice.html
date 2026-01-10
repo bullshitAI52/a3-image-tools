@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,7 +35,7 @@
     .header h1 {
       font-size: 2.5rem;
       margin-bottom: 10px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     }
 
     .header p {
@@ -45,7 +46,7 @@
     .main-content {
       background: white;
       border-radius: 20px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
       overflow: hidden;
       margin-bottom: 20px;
     }
@@ -58,23 +59,19 @@
     }
 
     .upload-area {
-      border: 3px dashed rgba(255,255,255,0.5);
-      border-radius: 15px;
+      border: 3px dashed rgba(255, 255, 255, 0.5);
+      border-radius: 20px;
       padding: 40px 20px;
       margin: 20px 0;
       transition: all 0.3s ease;
       cursor: pointer;
     }
 
-    .upload-area:hover {
-      border-color: rgba(255,255,255,0.8);
-      background: rgba(255,255,255,0.1);
-    }
-
+    .upload-area:hover,
     .upload-area.dragover {
-      border-color: #fff;
-      background: rgba(255,255,255,0.2);
-      transform: scale(1.02);
+      border-color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.1);
+      transform: scale(1.01);
     }
 
     .upload-icon {
@@ -89,6 +86,7 @@
     .upload-text {
       font-size: 1.2rem;
       margin-bottom: 10px;
+      font-weight: bold;
     }
 
     .upload-hint {
@@ -105,811 +103,816 @@
     .instructions h3 {
       color: #495057;
       margin-bottom: 15px;
-      font-size: 1.3rem;
-    }
-
-    .instructions ol {
-      padding-left: 20px;
+      font-size: 1.2rem;
     }
 
     .instructions li {
       margin-bottom: 8px;
-      color: #6c757d;
+      color: #666;
+      font-size: 0.95rem;
     }
 
     .canvas-container {
-      padding: 20px;
-      max-height: 70vh;
+      padding: 30px;
+      max-height: 75vh;
       overflow-y: auto;
-      background: #f8f9fa;
+      background: #f0f2f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .canvas-page {
       position: relative;
-      margin-bottom: 20px;
-      border-radius: 10px;
+      margin-bottom: 30px;
+      border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-      transition: all 0.3s ease;
+      /* Hide overflow so frames don't poke out weirdly, though frames are inside wrapper */
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      /* Lighter shadow */
+      transition: all 0.2s ease;
       background: white;
-    }
-
-    .canvas-page:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+      user-select: none;
+      /* Prevent text selection */
     }
 
     .canvas-page.selected {
-      outline: 4px solid #007bff;
-      transform: translateY(-3px);
-      box-shadow: 0 20px 50px rgba(0,123,255,0.3);
+      box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.5), 0 10px 30px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
     }
 
     .page-header {
-      background: #007bff;
+      background: #343a40;
       color: white;
       padding: 10px 15px;
       font-weight: 500;
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-
-    .page-number {
       font-size: 0.9rem;
     }
 
+    .canvas-page.selected .page-header {
+      background: #007bff;
+    }
+
     .cut-lines-count {
-      background: rgba(255,255,255,0.2);
-      padding: 2px 8px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 10px;
       border-radius: 12px;
       font-size: 0.8rem;
     }
 
     canvas {
-      width: 100%;
-      height: auto;
       display: block;
       background: #fff;
     }
 
+    /* Cut Line Styles */
     .cut-line {
       position: absolute;
       top: 0;
       width: 4px;
       height: 100%;
-      background: linear-gradient(to bottom, #ff4757, #ff3742);
+      background: linear-gradient(to bottom, #ff4757, #ff6b81);
       cursor: ew-resize;
-      z-index: 10;
-      border-radius: 2px;
-      box-shadow: 0 0 10px rgba(255,71,87,0.5);
-      transition: all 0.2s ease;
+      z-index: 50;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
     }
 
     .cut-line:hover {
       width: 6px;
-      box-shadow: 0 0 15px rgba(255,71,87,0.7);
+      background: #ff4757;
     }
 
-    .cut-line::before {
-      content: '';
+    .cut-line::after {
+      content: '↔';
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 20px;
-      height: 20px;
-      background: #ff4757;
-      border-radius: 50%;
-      border: 3px solid white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      pointer-events: none;
     }
 
+    /* A4 Frame Styles */
+    .a4-frame {
+      position: absolute;
+      border: 2px solid #28a745;
+      background: rgba(40, 167, 69, 0.1);
+      cursor: move;
+      z-index: 40;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .a4-frame.active {
+      border-color: #218838;
+      background: rgba(40, 167, 69, 0.25);
+      z-index: 45;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5), 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .a4-frame-handle {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: #28a745;
+      border: 2px solid white;
+      border-radius: 50%;
+      bottom: -8px;
+      right: -8px;
+      cursor: se-resize;
+      z-index: 46;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .a4-frame-delete {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 20px;
+      height: 20px;
+      background: #dc3545;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      z-index: 47;
+    }
+
+    .a4-frame-delete:hover {
+      transform: scale(1.1);
+      background: #c82333;
+    }
+
+    .a4-frame-label {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      font-size: 10px;
+      color: #155724;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 2px 5px;
+      border-radius: 3px;
+      pointer-events: none;
+    }
+
+    /* Controls */
     .controls {
       position: fixed;
       bottom: 30px;
       right: 30px;
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 12px;
       z-index: 1000;
     }
 
     .control-btn {
-      background: linear-gradient(135deg, #007bff, #0056b3);
-      color: white;
-      border: none;
-      padding: 15px 20px;
-      border-radius: 50px;
+      background: white;
+      color: #333;
+      border: 1px solid #ddd;
+      padding: 12px 20px;
+      border-radius: 8px;
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 8px 25px rgba(0,123,255,0.3);
-      transition: all 0.3s ease;
-      min-width: 200px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease;
+      min-width: 180px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
+      gap: 10px;
+    }
+
+    .control-btn i {
+      width: 20px;
+      text-align: center;
     }
 
     .control-btn:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 12px 35px rgba(0,123,255,0.4);
-      background: linear-gradient(135deg, #0056b3, #004085);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+      background: #f8f9fa;
+      color: #007bff;
+      border-color: #007bff;
     }
 
-    .control-btn:active {
-      transform: translateY(0);
+    .control-btn.primary {
+      background: linear-gradient(135deg, #007bff, #0062cc);
+      color: white;
+      border: none;
     }
 
-    .control-btn:disabled {
-      background: #6c757d;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: 0 4px 15px rgba(108,117,125,0.3);
+    .control-btn.primary:hover {
+      background: linear-gradient(135deg, #0069d9, #0056b3);
+      color: white;
     }
 
     .control-btn.export {
       background: linear-gradient(135deg, #28a745, #1e7e34);
-      box-shadow: 0 8px 25px rgba(40,167,69,0.3);
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      font-size: 1.1em;
     }
 
-    .control-btn.export:hover:not(:disabled) {
-      box-shadow: 0 12px 35px rgba(40,167,69,0.4);
-      background: linear-gradient(135deg, #1e7e34, #155724);
+    .control-btn.export:hover {
+      background: linear-gradient(135deg, #218838, #1c7430);
     }
 
+    .control-btn:disabled {
+      background: #e9ecef;
+      color: #adb5bd;
+      border-color: #dee2e6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Loading & Global Messages */
     .loading-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0, 0, 0, 0.85);
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      font-size: 1.2em;
       color: white;
       z-index: 2000;
       visibility: hidden;
       opacity: 0;
-      transition: all 0.3s ease;
+      transition: all 0.3s;
     }
 
     .loading-overlay.visible {
       visibility: visible;
       opacity: 1;
+      backdrop-filter: blur(5px);
     }
 
     .loading-spinner {
       width: 50px;
       height: 50px;
-      border: 4px solid rgba(255,255,255,0.3);
-      border-top: 4px solid white;
+      border: 4px solid rgba(255, 255, 255, 0.2);
+      border-top: 4px solid #fff;
       border-radius: 50%;
       animation: spin 1s linear infinite;
       margin-bottom: 20px;
     }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
     .progress-bar {
       width: 300px;
-      height: 6px;
-      background: rgba(255,255,255,0.3);
-      border-radius: 3px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
       overflow: hidden;
       margin-top: 15px;
     }
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #007bff, #28a745);
+      background: #28a745;
       width: 0%;
-      transition: width 0.3s ease;
+      transition: width 0.3s;
     }
 
-    .status-message {
-      margin-top: 10px;
-      font-size: 0.9rem;
-      opacity: 0.9;
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .message-toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 25px;
+      border-radius: 30px;
+      color: white;
+      font-weight: 500;
+      font-size: 0.95rem;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+      z-index: 3000;
+      animation: slideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .message-toast.error {
+      background: #dc3545;
+    }
+
+    .message-toast.success {
+      background: #28a745;
+    }
+
+    @keyframes slideDown {
+      from {
+        transform: translate(-50%, -20px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
     }
 
     .empty-state {
       text-align: center;
-      padding: 60px 20px;
-      color: #6c757d;
+      color: #999;
+      margin-top: 50px;
     }
 
-    .empty-state-icon {
+    .empty-state i {
       font-size: 4rem;
-      margin-bottom: 20px;
-      opacity: 0.5;
-    }
-
-    .error-message {
-      background: #f8d7da;
-      color: #721c24;
-      padding: 15px;
-      border-radius: 8px;
-      margin: 20px 0;
-      border-left: 4px solid #dc3545;
-    }
-
-    .success-message {
-      background: #d4edda;
-      color: #155724;
-      padding: 15px;
-      border-radius: 8px;
-      margin: 20px 0;
-      border-left: 4px solid #28a745;
-    }
-
-    @media (max-width: 768px) {
-      .container {
-        padding: 10px;
-      }
-      
-      .header h1 {
-        font-size: 2rem;
-      }
-      
-      .controls {
-        bottom: 20px;
-        right: 20px;
-        left: 20px;
-      }
-      
-      .control-btn {
-        min-width: auto;
-        padding: 12px 16px;
-        font-size: 13px;
-      }
+      opacity: 0.3;
+      margin-bottom: 15px;
+      display: block;
     }
   </style>
+  <!-- Using FontAwesome for icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
   <div class="container">
     <div class="header">
       <h1>📄 A3试卷拆分为A4工具</h1>
-      <p>智能裁剪，轻松转换，专业打印</p>
+      <p>智能裁剪 / 框选提取 / 高清导出 / 专业打印</p>
     </div>
 
     <div class="main-content">
       <div class="upload-section">
         <div class="upload-area" id="uploadArea">
-          <div class="upload-icon">📁</div>
+          <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
           <div class="upload-text">点击或拖拽文件到此处</div>
-          <div class="upload-hint">支持 PDF、PNG、JPEG、GIF、BMP 格式</div>
-          <input type="file" id="fileInput" class="file-input" accept=".pdf,image/png,image/jpeg,image/jpg,image/gif,image/bmp" />
+          <div class="upload-hint">支持 PDF (高清解析) 及各种常见图片格式</div>
+          <input type="file" id="fileInput" class="file-input"
+            accept=".pdf,image/png,image/jpeg,image/jpg,image/gif,image/bmp" />
         </div>
       </div>
 
       <div class="instructions">
-        <h3>📋 操作指南</h3>
-        <ol>
-          <li><strong>上传文件：</strong>选择PDF或图片格式的A3试卷（建议横向A3）</li>
-          <li><strong>选择页面：</strong>点击页面以选中目标页，或使用"全部选中"功能</li>
-          <li><strong>添加裁切线：</strong>在选中页面添加可拖动的垂直裁切线</li>
-          <li><strong>调整位置：</strong>拖动红色裁切线到精确位置</li>
-          <li><strong>删除裁切线：</strong>如需重新设置，可删除当前页面的所有裁切线</li>
-          <li><strong>导出PDF：</strong>生成A4格式的拆分后文件</li>
-        </ol>
+        <h3>💡 操作提示</h3>
+        <ul>
+          <li><strong>两种模式：</strong>支持"裁切线分割"（适合标准两栏/三栏）和"A4框选提取"（适合不规则布局）。</li>
+          <li><strong>裁切线：</strong>添加红线，导出时按线左右/上下分割。</li>
+          <li><strong>A4框选：</strong>添加绿色框，导出时仅保留框内内容，自动适配A4比例。</li>
+          <li><strong>混用规则：</strong>如果页面上有"A4框选"，将优先导出框选内容，忽略裁切线。</li>
+        </ul>
       </div>
 
       <div class="canvas-container" id="canvasContainer">
         <div class="empty-state">
-          <div class="empty-state-icon">📄</div>
-          <h3>请上传文件开始使用</h3>
-          <p>支持PDF和多种图片格式</p>
+          <i class="fas fa-file-pdf"></i>
+          <h3>等待上传文件...</h3>
+          <p>上传后将显示预览画面</p>
         </div>
       </div>
     </div>
   </div>
 
+  <div class="controls">
+    <button class="control-btn" id="selectAllBtn"><i class="fas fa-check-double"></i> 全部选中并加线</button>
+    <button class="control-btn primary" id="addCutLineBtn"><i class="fas fa-columns"></i> 添加垂直裁切线</button>
+    <button class="control-btn primary" id="addA4FrameBtn"><i class="fas fa-crop-alt"></i> 添加 A4 选框 (推荐)</button>
+    <button class="control-btn" id="clearPageBtn"><i class="fas fa-eraser"></i> 清除本页设置</button>
+    <button class="control-btn export" id="exportBtn"><i class="fas fa-file-export"></i> 导出高清 PDF</button>
+  </div>
+
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner"></div>
-    <div id="loadingText">正在处理，请稍候...</div>
+    <div id="loadingText">处理中...</div>
     <div class="progress-bar">
       <div class="progress-fill" id="progressFill"></div>
     </div>
-    <div class="status-message" id="statusMessage"></div>
   </div>
 
-  <div class="controls">
-    <button class="control-btn" id="selectAllAddCutLines">
-      🌐 全部选中并添加裁切线
-    </button>
-    <button class="control-btn" id="addCutLine">
-      ➕ 添加裁切线
-    </button>
-    <button class="control-btn" id="removeCutLines">
-      🗑️ 删除本页裁切线
-    </button>
-    <button class="control-btn export" id="exportPDF">
-      📄 导出为PDF (A4)
-    </button>
-  </div>
-
+  <!-- Libs -->
   <script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  
+
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-    // DOM 元素
-    const fileInput = document.getElementById('fileInput');
-    const uploadArea = document.getElementById('uploadArea');
-    const container = document.getElementById('canvasContainer');
-    const selectAllBtn = document.getElementById('selectAllAddCutLines');
-    const addCutLineBtn = document.getElementById('addCutLine');
-    const removeCutLinesBtn = document.getElementById('removeCutLines');
-    const exportBtn = document.getElementById('exportPDF');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const loadingText = document.getElementById('loadingText');
-    const statusMessage = document.getElementById('statusMessage');
-    const progressFill = document.getElementById('progressFill');
-
-    const supportedImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/bmp'];
-
-    // 状态变量
-    let pages = [];
+    // State
+    let pages = []; // { wrapper, canvas, ctx, originalImage(DataURL), cutLines[], frames[], pageIndex }
     let currentPageIndex = null;
     let isDragging = false;
-    let activeLine = null;
+    let activeItem = null; // { type: 'line'|'frame', obj, ... }
 
-    // 工具函数
-    function showLoading(message = "正在处理，请稍候...", progress = 0) {
-      loadingText.textContent = message;
-      progressFill.style.width = `${progress}%`;
-      loadingOverlay.classList.add('visible');
-      setButtonsDisabled(true);
+    // Constants
+    const A4_RATIO = 210 / 297; // Width / Height
+
+    // UI Elements
+    const els = {
+      container: document.getElementById('canvasContainer'),
+      fileInput: document.getElementById('fileInput'),
+      uploadArea: document.getElementById('uploadArea'),
+      loading: document.getElementById('loadingOverlay'),
+      loadingText: document.getElementById('loadingText'),
+      progress: document.getElementById('progressFill'),
+      btns: {
+        selectAll: document.getElementById('selectAllBtn'),
+        addCut: document.getElementById('addCutLineBtn'),
+        addFrame: document.getElementById('addA4FrameBtn'),
+        clear: document.getElementById('clearPageBtn'),
+        export: document.getElementById('exportBtn')
+      }
+    };
+
+    // --- Core Logic ---
+
+    // 1. File Handling
+    els.fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+    els.uploadArea.addEventListener('click', () => els.fileInput.click());
+    els.uploadArea.addEventListener('dragover', e => { e.preventDefault(); els.uploadArea.classList.add('dragover'); });
+    els.uploadArea.addEventListener('dragleave', () => els.uploadArea.classList.remove('dragover'););
+    els.uploadArea.addEventListener('drop', e => {
+      e.preventDefault(); els.uploadArea.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+
+    async function handleFile(file) {
+      if (!file) return;
+      pages = []; currentPageIndex = null; els.container.innerHTML = '';
+
+      showLoading('正在解析文件，启用高清渲染模式 (300 DPI)...', 0);
+      try {
+        if (file.type === 'application/pdf') await processPDF(file);
+        else if (file.type.startsWith('image/')) await processImage(file);
+        else throw new Error('不支持的文件格式');
+
+        showToast('文件加载成功！点击页面可进行操作。', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast(err.message, 'error');
+      } finally {
+        hideLoading();
+      }
     }
 
-    function hideLoading() {
-      loadingOverlay.classList.remove('visible');
-      setButtonsDisabled(false);
+    async function processPDF(file) {
+      const buffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument(buffer).promise;
+
+      for (let i = 0; i < pdf.numPages; i++) {
+        updateProgress((i / pdf.numPages) * 100, `解析页面 ${i + 1}/${pdf.numPages}...`);
+        const page = await pdf.getPage(i + 1);
+
+        // Preview Render (Low Res for UI)
+        const viewport = page.getViewport({ scale: 1.0 }); // UI scale
+        const pageData = createPageUI(viewport.width, viewport.height, i);
+        await page.render({ canvasContext: pageData.ctx, viewport }).promise;
+
+        // High Res Capture (For Export) - Crucial for "HD" requirement
+        // Using logic scale 3.0 ~ 200-300 DPI
+        const hdScale = 3.0;
+        const hdViewport = page.getViewport({ scale: hdScale });
+        const hdCanvas = document.createElement('canvas');
+        hdCanvas.width = hdViewport.width;
+        hdCanvas.height = hdViewport.height;
+        await page.render({ canvasContext: hdCanvas.getContext('2d'), viewport: hdViewport }).promise;
+
+        pageData.originalImage = hdCanvas.toDataURL('image/jpeg', 0.9); // Store as JPEG to save memory
+        pages.push(pageData);
+      }
     }
 
-    function setButtonsDisabled(disabled) {
-      [addCutLineBtn, removeCutLinesBtn, exportBtn, selectAllBtn, fileInput].forEach(btn => {
-        if (btn) btn.disabled = disabled;
+    async function processImage(file) {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve; img.onerror = reject; img.src = url;
       });
+
+      // If image is huge, maybe scale down logic? For now keep original.
+      const pageData = createPageUI(img.naturalWidth, img.naturalHeight, 0);
+      pageData.ctx.drawImage(img, 0, 0);
+      pageData.originalImage = img.src; // Keep Blob URL or Data URL
+      pages.push(pageData);
     }
 
-    function updateProgress(progress, message) {
-      progressFill.style.width = `${progress}%`;
-      if (message) statusMessage.textContent = message;
-    }
+    function createPageUI(w, h, idx) {
+      // Adjust display width to fit container (responsive) but keep coordinate mapping
+      // We'll trust CSS to shrink the canvas visual, but canvas width/height attrs remain true to viewport (or 1.0 scale)
+      // Actually, better to keep canvas logical size = viewport size. CSS will scale it down.
 
-    function showMessage(message, type = 'success') {
-      const messageDiv = document.createElement('div');
-      messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
-      messageDiv.textContent = message;
-      container.appendChild(messageDiv);
-      setTimeout(() => messageDiv.remove(), 5000);
-    }
-
-    // 页面创建函数
-    function createCanvasPage(width, height, pageIndex) {
       const wrapper = document.createElement('div');
       wrapper.className = 'canvas-page';
-      
+
       const header = document.createElement('div');
       header.className = 'page-header';
-      header.innerHTML = `
-        <span class="page-number">第 ${pageIndex + 1} 页</span>
-        <span class="cut-lines-count">0 条裁切线</span>
-      `;
-      
+      header.innerHTML = `<span>第 ${idx + 1} 页</span><span class="cut-lines-count">未设置</span>`;
+      if (idx === 0) wrapper.classList.add('selected');
+
       const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      
+      canvas.width = w; canvas.height = h;
+      // visual style
+      canvas.style.width = '100%'; canvas.style.height = 'auto';
+
       wrapper.appendChild(header);
       wrapper.appendChild(canvas);
-      container.appendChild(wrapper);
+      els.container.appendChild(wrapper);
 
-      const pageData = {
-        wrapper,
-        canvas,
-        ctx: canvas.getContext('2d'),
-        originalImage: null,
-        cutLines: [],
-        pageIndex
-      };
-
-      wrapper.addEventListener('click', (e) => {
-        if (e.target.classList.contains('cut-line')) return;
-        selectPage(pageData);
+      const pageObj = { wrapper, canvas, ctx: canvas.getContext('2d'), originalImage: null, cutLines: [], frames: [], pageIndex: idx };
+      wrapper.addEventListener('click', e => {
+        if (e.target.closest('.control-btn')) return; // ignore internal buttons if any
+        selectPage(pageObj);
       });
 
-      return pageData;
+      if (idx === 0) currentPageIndex = 0;
+      return pageObj;
     }
 
-    function selectPage(pageData) {
-      pages.forEach((p, idx) => {
-        p.wrapper.classList.remove('selected');
-        if (p === pageData) currentPageIndex = idx;
-      });
-      pageData.wrapper.classList.add('selected');
-      updateCutLinesCount(pageData);
+    function selectPage(page) {
+      pages.forEach(p => p.wrapper.classList.remove('selected'));
+      page.wrapper.classList.add('selected');
+      currentPageIndex = page.pageIndex;
     }
 
-    function updateCutLinesCount(page) {
-      const countElement = page.wrapper.querySelector('.cut-lines-count');
-      countElement.textContent = `${page.cutLines.length} 条裁切线`;
-    }
+    // --- Interaction Logic ---
 
-    // 裁切线管理
-    function addCutLineToPage(page, initialRatio = 0.5) {
+    // 1. Cut Lines
+    els.btns.addCut.addEventListener('click', () => {
+      if (currentPageIndex === null) return showToast('请先选中一个页面', 'error');
+      addCutLine(pages[currentPageIndex]);
+    });
+
+    function addCutLine(page) {
       const line = document.createElement('div');
       line.className = 'cut-line';
-      const cutData = { el: line, ratio: initialRatio };
+      line.style.left = '50%';
+      page.wrapper.appendChild(line);
 
-      const updateLinePosition = () => {
-        if (!line.parentNode) {
-          window.removeEventListener('resize', updateLinePosition);
-          return;
-        }
-        const wrapperRect = page.wrapper.getBoundingClientRect();
-        if (cutData && typeof cutData.ratio === 'number' && wrapperRect.width > 0) {
-          line.style.left = `${cutData.ratio * wrapperRect.width}px`;
-        }
+      const lineObj = { el: line, ratio: 0.5 };
+      page.cutLines.push(lineObj);
+      updatePageStatus(page);
+
+      // Dragging
+      line.addEventListener('mousedown', e => {
+        e.stopPropagation();
+        startDragging(e, page, 'line', lineObj);
+        selectPage(page);
+      });
+    }
+
+    // 2. A4 Frames (New Feature)
+    els.btns.addFrame.addEventListener('click', () => {
+      if (currentPageIndex === null) return showToast('请先选中一个页面', 'error');
+      addA4Frame(pages[currentPageIndex]);
+    });
+
+    function addA4Frame(page) {
+      const wrapperRect = page.wrapper.getBoundingClientRect(); // Visual dimensions
+      // Note: The logic handles (drag) work on visual pixels (wrapper DOM coordinates).
+      // On export, we must map these (%) to the originalImage pixels.
+
+      // Initial size: 80% height, width based on A4 ratio
+      let h = wrapperRect.height * 0.8;
+      let w = h * A4_RATIO;
+      if (w > wrapperRect.width * 0.9) { w = wrapperRect.width * 0.8; h = w / A4_RATIO; }
+
+      const frame = document.createElement('div');
+      frame.className = 'a4-frame';
+      frame.style.width = w + 'px'; frame.style.height = h + 'px';
+      frame.style.top = (wrapperRect.height - h) / 2 + 'px';
+      frame.style.left = (wrapperRect.width - w) / 2 + 'px';
+      frame.innerHTML = '<div class="a4-frame-label">A4</div><div class="a4-frame-delete"><i class="fas fa-times"></i></div><div class="a4-frame-handle"></div>';
+
+      page.wrapper.appendChild(frame);
+      const frameObj = { el: frame, x: 0, y: 0, w: 0, h: 0 }; // Values updated on interaction end or export
+      page.frames.push(frameObj);
+      updatePageStatus(page);
+
+      // Interaction
+      const delBtn = frame.querySelector('.a4-frame-delete');
+      const handle = frame.querySelector('.a4-frame-handle');
+
+      delBtn.onclick = e => {
+        e.stopPropagation();
+        frame.remove();
+        page.frames = page.frames.filter(f => f !== frameObj);
+        updatePageStatus(page);
       };
 
-      line.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        activeLine = { line, page, cutData };
+      frame.addEventListener('mousedown', e => {
         e.stopPropagation();
-      });
-
-      page.wrapper.appendChild(line);
-      page.cutLines.push(cutData);
-      cutData.resizeListener = updateLinePosition;
-      updateCutLinesCount(page);
-
-      requestAnimationFrame(updateLinePosition);
-      window.addEventListener('resize', updateLinePosition);
-    }
-
-    function removeCutLinesFromPage(page) {
-      page.cutLines.forEach(cut => {
-        cut.el.remove();
-        if (cut.resizeListener) {
-          window.removeEventListener('resize', cut.resizeListener);
-        }
-      });
-      page.cutLines = [];
-      updateCutLinesCount(page);
-    }
-
-    // 鼠标事件处理
-    window.addEventListener('mousemove', (e) => {
-      if (!isDragging || !activeLine) return;
-      const { line, page, cutData } = activeLine;
-      const wrapperRect = page.wrapper.getBoundingClientRect();
-      if (wrapperRect.width <= 0) return;
-
-      let newX = e.clientX - wrapperRect.left;
-      newX = Math.max(0, Math.min(wrapperRect.width, newX));
-      const newRatio = newX / wrapperRect.width;
-
-      cutData.ratio = newRatio;
-      line.style.left = `${newX}px`;
-    });
-
-    window.addEventListener('mouseup', () => {
-      if (isDragging) {
-        isDragging = false;
-        activeLine = null;
-      }
-    });
-
-    // 文件上传处理
-    function handleFileUpload(file) {
-      container.innerHTML = '';
-      pages = [];
-      currentPageIndex = null;
-
-      if (!file) return;
-
-      showLoading('正在加载文件，请稍候...');
-
-      if (file.type === 'application/pdf') {
-        handlePDFFile(file);
-      } else if (supportedImageTypes.includes(file.type)) {
-        handleImageFile(file);
-      } else {
-        showMessage('不支持的文件类型。请上传 PDF 或支持的图片格式。', 'error');
-        hideLoading();
-      }
-    }
-
-    async function handlePDFFile(file) {
-      try {
-        const fileReader = new FileReader();
-        const arrayBuffer = await new Promise((resolve, reject) => {
-          fileReader.onload = () => resolve(fileReader.result);
-          fileReader.onerror = reject;
-          fileReader.readAsArrayBuffer(file);
-        });
-
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-        const pdf = await loadingTask.promise;
-        const scale = 1.5;
-
-        for (let i = 0; i < pdf.numPages; i++) {
-          updateProgress((i / pdf.numPages) * 100, `正在加载 PDF 第 ${i + 1} / ${pdf.numPages} 页...`);
-          
-          const page = await pdf.getPage(i + 1);
-          const viewport = page.getViewport({ scale });
-          const pageData = createCanvasPage(viewport.width, viewport.height, i);
-
-          const renderContext = { canvasContext: pageData.ctx, viewport: viewport };
-          await page.render(renderContext).promise;
-
-          const highResScale = 2.0;
-          const highResViewport = page.getViewport({ scale: highResScale });
-          const offscreenCanvas = document.createElement('canvas');
-          offscreenCanvas.width = highResViewport.width;
-          offscreenCanvas.height = highResViewport.height;
-          const offscreenCtx = offscreenCanvas.getContext('2d');
-          const highResRenderContext = { canvasContext: offscreenCtx, viewport: highResViewport };
-          await page.render(highResRenderContext).promise;
-          pageData.originalImage = offscreenCanvas.toDataURL('image/jpeg', 0.95);
-
-          pages.push(pageData);
-        }
-        
-        showMessage(`成功加载 ${pdf.numPages} 页PDF文件`);
-      } catch (error) {
-        console.error('PDF处理错误:', error);
-        showMessage(`PDF处理失败: ${error.message}`, 'error');
-      } finally {
-        hideLoading();
-      }
-    }
-
-    async function handleImageFile(file) {
-      try {
-        const img = new Image();
-        const imageUrl = URL.createObjectURL(file);
-        
-        await new Promise((resolve, reject) => {
-          img.onload = () => {
-            const maxDimension = 5000;
-            let width = img.naturalWidth;
-            let height = img.naturalHeight;
-
-            if (width > maxDimension || height > maxDimension) {
-              showMessage('图片尺寸过大，将自动缩放以提高性能。');
-              const scale = Math.min(maxDimension / width, maxDimension / height);
-              width = width * scale;
-              height = height * scale;
-            }
-
-            const pageData = createCanvasPage(width, height, 0);
-            pageData.ctx.drawImage(img, 0, 0, width, height);
-            pageData.originalImage = pageData.canvas.toDataURL('image/jpeg', 0.95);
-            pages.push(pageData);
-            
-            URL.revokeObjectURL(imageUrl);
-            resolve();
-          };
-          
-          img.onerror = () => {
-            URL.revokeObjectURL(imageUrl);
-            reject(new Error('无法加载图片文件'));
-          };
-          
-          img.src = imageUrl;
-        });
-        
-        showMessage('成功加载图片文件');
-      } catch (error) {
-        console.error('图片处理错误:', error);
-        showMessage(`图片处理失败: ${error.message}`, 'error');
-      } finally {
-        hideLoading();
-      }
-    }
-
-    // 事件监听器
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      handleFileUpload(file);
-    });
-
-    uploadArea.addEventListener('click', () => {
-      fileInput.click();
-    });
-
-    uploadArea.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      uploadArea.classList.add('dragover');
-    });
-
-    uploadArea.addEventListener('dragleave', () => {
-      uploadArea.classList.remove('dragover');
-    });
-
-    uploadArea.addEventListener('drop', (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove('dragover');
-      const file = e.dataTransfer.files[0];
-      if (file) {
-        fileInput.files = e.dataTransfer.files;
-        handleFileUpload(file);
-      }
-    });
-
-    selectAllBtn.addEventListener('click', () => {
-      if (pages.length === 0) {
-        showMessage('请先上传文件。', 'error');
-        return;
-      }
-      
-      pages.forEach((page, index) => {
-        removeCutLinesFromPage(page);
+        const isResize = e.target === handle;
+        startDragging(e, page, isResize ? 'frame-resize' : 'frame-move', frameObj);
         selectPage(page);
-        addCutLineToPage(page, 0.5);
+        // Highlight
+        page.wrapper.querySelectorAll('.a4-frame').forEach(f => f.classList.remove('active'));
+        frame.classList.add('active');
       });
-      
-      showMessage('已为所有页面添加裁切线！');
+    }
+
+    // Common Drag Handler
+    function startDragging(e, page, type, obj) {
+      isDragging = true;
+      const wrapperRect = page.wrapper.getBoundingClientRect();
+      const startX = e.clientX;
+      const startY = e.clientY;
+
+      // Initial values defined by DOM style
+      const startLeft = parseFloat(obj.el.style.left);
+      const startTop = parseFloat(obj.el.style.top || 0);
+      const startW = parseFloat(obj.el.style.width || 0);
+      const startH = parseFloat(obj.el.style.height || 0);
+
+      function onMove(ev) {
+        if (!isDragging) return;
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+
+        if (type === 'line') {
+          let newLeft = startLeft + dx; // px in wrapper
+          newLeft = Math.max(0, Math.min(newLeft, wrapperRect.width));
+          obj.el.style.left = newLeft + 'px';
+          obj.ratio = newLeft / wrapperRect.width;
+        }
+        else if (type === 'frame-move') {
+          let nl = startLeft + dx;
+          let nt = startTop + dy;
+          // Bound check
+          nl = Math.max(0, Math.min(nl, wrapperRect.width - startW));
+          nt = Math.max(0, Math.min(nt, wrapperRect.height - startH));
+          obj.el.style.left = nl + 'px';
+          obj.el.style.top = nt + 'px';
+        }
+        else if (type === 'frame-resize') {
+          let nw = startW + dx;
+          // Aspect lock
+          let nh = nw / A4_RATIO;
+
+          // Bounds
+          if (startLeft + nw > wrapperRect.width) { nw = wrapperRect.width - startLeft; nh = nw / A4_RATIO; }
+          if (startTop + nh > wrapperRect.height) { nh = wrapperRect.height - startTop; nw = nh * A4_RATIO; }
+          if (nw < 50) return; // Min size
+
+          obj.el.style.width = nw + 'px';
+          obj.el.style.height = nh + 'px';
+        }
+      }
+
+      function onUp() {
+        isDragging = false;
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      }
+
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    }
+
+    // 3. Clear & Select All
+    els.btns.clear.addEventListener('click', () => {
+      if (currentPageIndex === null) return;
+      const p = pages[currentPageIndex];
+      p.cutLines.forEach(l => l.el.remove()); p.cutLines = [];
+      p.frames.forEach(f => f.el.remove()); p.frames = [];
+      updatePageStatus(p);
     });
 
-    addCutLineBtn.addEventListener('click', () => {
-      if (currentPageIndex === null || !pages[currentPageIndex]) {
-        showMessage('请点击选中一页后再添加裁切线', 'error');
-        return;
-      }
-      const page = pages[currentPageIndex];
-      addCutLineToPage(page, 0.5);
+    els.btns.selectAll.addEventListener('click', () => {
+      if (!pages.length) return showToast('无页面', 'error');
+      pages.forEach(p => {
+        // clear old
+        p.cutLines.forEach(l => l.el.remove()); p.cutLines = [];
+        // add one center line
+        addCutLine(p);
+      });
+      showToast('已重置所有页面为中间分割', 'success');
     });
 
-    removeCutLinesBtn.addEventListener('click', () => {
-      if (currentPageIndex === null || !pages[currentPageIndex]) {
-        showMessage('请先选中页面', 'error');
-        return;
-      }
-      removeCutLinesFromPage(pages[currentPageIndex]);
-    });
+    function updatePageStatus(page) {
+      const header = page.wrapper.querySelector('.cut-lines-count');
+      const l = page.cutLines.length;
+      const f = page.frames.length;
+      if (f > 0) header.textContent = `A4选框: ${f}个 (优先导出)`;
+      else header.textContent = `裁切线: ${l}条`;
+    }
 
-    exportBtn.addEventListener('click', async () => {
-      if (pages.length === 0) {
-        showMessage('请先上传文件。', 'error');
-        return;
-      }
-
-      const pagesWithoutCuts = pages.filter(p => p.cutLines.length === 0);
-      if (pagesWithoutCuts.length > 0) {
-        const confirmProceed = confirm(`警告：有 ${pagesWithoutCuts.length} 页没有添加裁切线，这些页面将尝试缩放到单张A4页面上。是否继续？`);
-        if (!confirmProceed) return;
-      }
-
-      showLoading('🚀 正在导出PDF，请稍候...');
-      exportBtn.disabled = true;
+    // --- Export Logic ---
+    els.btns.export.addEventListener('click', async () => {
+      if (pages.length === 0) return showToast('无内容', 'error');
+      showLoading('🚀 正在生成高清 PDF...', 0);
 
       try {
-        const a4WidthPt = 8.27 * 72;
-        const a4HeightPt = 11.69 * 72;
         const { jsPDF } = jspdf;
-        const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
-        let pdfPageCount = 0;
+        const pdf = new jsPDF('p', 'pt', 'a4');
+        const pgW = pdf.internal.pageSize.getWidth();
+        const pgH = pdf.internal.pageSize.getHeight();
+        let hasPages = false;
 
-        for (const [index, page] of pages.entries()) {
-          updateProgress((index / pages.length) * 100, `正在处理第 ${index + 1} / ${pages.length} 页...`);
+        for (let i = 0; i < pages.length; i++) {
+          updateProgress((i / pages.length) * 100, `处理第 ${i + 1}/${pages.length} 页...`);
+          const page = pages[i];
+          const bgImg = new Image();
+          bgImg.src = page.originalImage;
+          await new Promise(r => bgImg.onload = r);
 
-          await new Promise((resolve) => {
-            if (!page.originalImage) {
-              console.warn(`Page ${index + 1} missing original image data. Skipping.`);
-              resolve();
-              return;
+          // Calculate mappings: Image Pixels vs Wrapper Pixels
+          const wrapperRect = page.wrapper.getBoundingClientRect();
+          const scaleX = bgImg.naturalWidth / wrapperRect.width;
+          const scaleY = bgImg.naturalHeight / wrapperRect.height;
+
+          // --- Strategy A: Frames ---
+          if (page.frames.length > 0) {
+            // Sort frames top-left to bottom-rightish
+            const sortedFrames = [...page.frames].sort((a, b) => {
+              const rA = a.el.getBoundingClientRect();
+              const rB = b.el.getBoundingClientRect();
+              return (rA.top - rB.top) || (rA.left - rB.left);
+            });
+
+            for (let f of sortedFrames) {
+              if (hasPages) pdf.addPage();
+              hasPages = true;
+
+              // Get DOM rect relative to wrapper
+              const fStyle = window.getComputedStyle(f.el);
+              const fx = parseFloat(fStyle.left);
+              const fy = parseFloat(fStyle.top);
+              const fw = parseFloat(fStyle.width);
+              const fh = parseFloat(fStyle.height);
+
+              // Map to Source Image
+              const sx = fx * scaleX;
+              const sy = fy * scaleY;
+              const sw = fw * scaleX;
+              const sh = fh * scaleY;
+
+              // Crop
+              const cvs = document.createElement('canvas');
+              cvs.width = sw; cvs.height = sh;
+              cvs.getContext('2d').drawImage(bgImg, sx, sy, sw, sh, 0, 0, sw, sh);
+
+              pdf.addImage(cvs.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pgW, pgH);
             }
+          }
+          // --- Strategy B: Cut Lines ---
+          else {
+            // Default to 1 slice if no lines
+            const sortedLines = [...page.cutLines].sort((a, b) => a.ratio - b.ratio);
+            const ratios = [0, ...sortedLines.map(l => l.ratio), 1];
 
-            const img = new Image();
-            img.onload = () => {
-              const sourceCanvas = document.createElement('canvas');
-              sourceCanvas.width = img.naturalWidth;
-              sourceCanvas.height = img.naturalHeight;
-              const sourceCtx = sourceCanvas.getContext('2d');
-              sourceCtx.drawImage(img, 0, 0);
+            for (let j = 0; j < ratios.length - 1; j++) {
+              if (hasPages) pdf.addPage();
+              hasPages = true;
 
-              const hasCutLines = page.cutLines.length > 0;
+              const r1 = ratios[j];
+              const r2 = ratios[j + 1];
 
-              if (!hasCutLines) {
-                if (sourceCanvas.width > 0 && sourceCanvas.height > 0) {
-                  if (pdfPageCount > 0) pdf.addPage('a4', 'p');
-                  pdfPageCount++;
-                  pdf.setPage(pdfPageCount);
+              const sx = r1 * bgImg.naturalWidth;
+              const sy = 0;
+              const sw = (r2 - r1) * bgImg.naturalWidth;
+              const sh = bgImg.naturalHeight;
 
-                  const imgWidth = sourceCanvas.width;
-                  const imgHeight = sourceCanvas.height;
-                  const scale = Math.min(a4WidthPt / imgWidth, a4HeightPt / imgHeight);
-                  const finalWidth = imgWidth * scale;
-                  const finalHeight = imgHeight * scale;
-                  const offsetX = (a4WidthPt - finalWidth) / 2;
-                  const offsetY = (a4HeightPt - finalHeight) / 2;
+              const cvs = document.createElement('canvas');
+              cvs.width = sw; cvs.height = sh;
+              cvs.getContext('2d').drawImage(bgImg, sx, sy, sw, sh, 0, 0, sw, sh);
 
-                  pdf.addImage(sourceCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', offsetX, offsetY, finalWidth, finalHeight);
-                }
-              } else {
-                const sortedRatios = page.cutLines.map(line => line.ratio).sort((a, b) => a - b);
-                const uniqueSortedRatios = [...new Set(sortedRatios)];
-                const positions = [0, ...uniqueSortedRatios, 1];
-
-                for (let i = 0; i < positions.length - 1; i++) {
-                  const startRatio = positions[i];
-                  const endRatio = positions[i + 1];
-
-                  if (typeof startRatio !== 'number' || typeof endRatio !== 'number' || startRatio < 0 || startRatio >= endRatio || endRatio > 1) {
-                    continue;
-                  }
-
-                  const startX = Math.round(startRatio * sourceCanvas.width);
-                  const segmentWidth = Math.max(0, Math.round((endRatio - startRatio) * sourceCanvas.width));
-                  const segmentHeight = sourceCanvas.height;
-
-                  if (segmentWidth <= 0 || segmentHeight <= 0) {
-                    continue;
-                  }
-
-                  const tempCanvas = document.createElement('canvas');
-                  tempCanvas.width = segmentWidth;
-                  tempCanvas.height = segmentHeight;
-                  const tempCtx = tempCanvas.getContext('2d');
-                  tempCtx.drawImage(sourceCanvas, startX, 0, segmentWidth, segmentHeight, 0, 0, segmentWidth, segmentHeight);
-
-                  if (pdfPageCount > 0) pdf.addPage('a4', 'p');
-                  pdfPageCount++;
-                  pdf.setPage(pdfPageCount);
-
-                  const imgWidth = segmentWidth;
-                  const imgHeight = segmentHeight;
-
-                  if (imgWidth > 0 && imgHeight > 0) {
-                    const scaleWidth = a4WidthPt / imgWidth;
-                    const scaleHeight = a4HeightPt / imgHeight;
-                    const scale = Math.min(scaleWidth, scaleHeight);
-                    const finalWidth = imgWidth * scale;
-                    const finalHeight = imgHeight * scale;
-                    const offsetX = (a4WidthPt - finalWidth) / 2;
-                    const offsetY = (a4HeightPt - finalHeight) / 2;
-
-                    pdf.addImage(tempCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', offsetX, offsetY, finalWidth, finalHeight);
-                  }
-                }
-              }
-              resolve();
-            };
-
-            img.onerror = () => {
-              console.error(`Error loading image data for page ${index + 1} for export.`);
-              resolve();
-            };
-
-            img.src = page.originalImage;
-          });
+              // Fit to PDF
+              pdf.addImage(cvs.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pgW, pgH);
+            }
+          }
         }
 
-        if (pdfPageCount > 0) {
-          pdf.save('拆分后试卷_A4.pdf');
-          showMessage('PDF导出成功！');
-        } else {
-          showMessage('未能生成任何PDF页面。请检查源文件和裁切线设置。', 'error');
-        }
-      } catch (error) {
-        console.error("导出PDF时发生错误:", error);
-        showMessage(`导出PDF失败: ${error.message}`, 'error');
+        pdf.save('A3_Splitted_Exam.pdf');
+        showToast('导出成功！', 'success');
+      } catch (e) {
+        console.error(e);
+        showToast('导出失败: ' + e.message, 'error');
       } finally {
         hideLoading();
-        exportBtn.disabled = false;
       }
     });
+
+    // Helpers
+    function showLoading(txt, pct) { els.loading.classList.add('visible'); updateProgress(pct, txt); }
+    function hideLoading() { els.loading.classList.remove('visible'); }
+    function updateProgress(pct, txt) {
+      if (txt) els.loadingText.innerText = txt;
+      els.progress.style.width = pct + '%';
+    }
+    function showToast(msg, type) {
+      const t = document.createElement('div');
+      t.className = `message-toast ${type}`;
+      t.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${msg}`;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
   </script>
 </body>
-</html> 
+
+</html>
