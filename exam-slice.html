@@ -157,6 +157,7 @@
     .a4-mask {
       position: absolute;
       background: rgba(33, 150, 243, 0.15);
+      /* Default, overridden by JS */
       border: 2px solid #2196F3;
       cursor: move;
       z-index: 100;
@@ -164,8 +165,6 @@
     }
 
     .a4-mask.active {
-      background: rgba(33, 150, 243, 0.25);
-      border-color: #1976D2;
       z-index: 110;
     }
 
@@ -382,7 +381,8 @@
             <li><b>添加裁切线：</b>适用于规则的左右分栏试卷。添加红线后，按线分割。</li>
             <li><b>添加 A4 遮罩：</b>适用于不规则内容或三栏试卷。
               <ul>
-                <li>点击“添加 A4 遮罩”生成蓝色选框。</li>
+                <li>点击“添加 A4 遮罩”生成彩色选框。</li>
+                <li>每次添加会自动切换颜色 (蓝/橙/绿/紫/粉/青)。</li>
                 <li>拖动遮罩覆盖需要提取的题目区域。</li>
                 <li>拖动右下角圆点可调整大小（锁定 A4 比例）。</li>
               </ul>
@@ -390,7 +390,7 @@
             <li><b>导出：</b>
               <ul>
                 <li><b>导出裁切线 PDF：</b>按红色分割线逻辑生成。</li>
-                <li><b>导出遮罩 PDF：</b>仅导出蓝色遮罩选中的内容。</li>
+                <li><b>导出遮罩 PDF：</b>仅导出遮罩框选的内容，每个遮罩一页。</li>
               </ul>
             </li>
           </ul>
@@ -561,7 +561,16 @@
       page.lines.push(line);
     };
 
-    // --- Mask Logic (Matches Reference) ---
+    // --- Mask Logic with Colorful Support ---
+    const MASK_COLORS = [
+      '#2196F3', // Blue
+      '#FF9800', // Orange
+      '#4CAF50', // Green
+      '#9C27B0', // Purple
+      '#E91E63', // Pink
+      '#00BCD4'  // Cyan
+    ];
+
     window.addMask = () => {
       if (currPageIdx === null) return alert('请先点选一页');
       const page = pages[currPageIdx];
@@ -571,14 +580,22 @@
       let w = rect.width * 0.4;
       let h = w / A4_RATIO;
 
+      // Pick Color based on index for this page (or globally? locally is better)
+      const color = MASK_COLORS[page.masks.length % MASK_COLORS.length];
+
       const mask = document.createElement('div');
       mask.className = 'a4-mask';
       mask.style.width = w + 'px'; mask.style.height = h + 'px';
       mask.style.top = '10%'; mask.style.left = '10%';
+
+      // Apply Color Styles
+      mask.style.borderColor = color;
+      mask.style.backgroundColor = color + '26'; // ~15% opacity hex
+
       mask.innerHTML = `
-            <div class="mask-badge-a4">A4</div>
+            <div class="mask-badge-a4" style="background:${color}">A4</div>
             <div class="mask-close"><i class="fas fa-times"></i></div>
-            <div class="mask-resize"></div>
+            <div class="mask-resize" style="background:${color}"></div>
         `;
 
       mask.querySelector('.mask-close').onclick = e => {
