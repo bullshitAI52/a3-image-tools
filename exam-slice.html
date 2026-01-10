@@ -474,375 +474,363 @@
     fileInput.onchange = e => handleFile(e.target.files[0]);
 
     async function handleFile(file) {
-      if (!file) return;
-      pages = []; currPageIdx = null; container.innerHTML = '';
-      showLoading(true, '正在解析文件...');
+        if(!file) return;
+        pages = []; currPageIdx = null; container.innerHTML = '';
+        showLoading(true, '正在解析文件...');
 
-      try {
-        if (file.type === 'application/pdf') {
-          const buf = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument(buf).promise;
-          for (let i = 1; i <= pdf.numPages; i++) {
-            updateProgress(i / pdf.numPages);
-            const page = await pdf.getPage(i);
-            const vp = page.getViewport({ scale: 1.5 }); // View Scale
-
-            // High Res for Export
-            const hdVp = page.getViewport({ scale: 3.0 });
-            const cvs = document.createElement('canvas');
-            cvs.width = hdVp.width; cvs.height = hdVp.height;
-            await page.render({ canvasContext: cvs.getContext('2d'), viewport: hdVp }).promise;
-
-            addPage(cvs.toDataURL('image/jpeg', 0.8), i - 1);
-          }
-        } else {
-          const url = URL.createObjectURL(file);
-          const img = new Image();
-          await new Promise(r => img.onload = r); img.src = url;
-          addPage(url, 0); // Simple image
+        try {
+            if(file.type === 'application/pdf') {
+                const buf = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(buf).promise;
+                for(let i=1; i<=pdf.numPages; i++) {
+                    updateProgress(i/pdf.numPages);
+                    const page = await pdf.getPage(i);
+                    const vp = page.getViewport({scale: 1.5}); // View Scale
+                    
+                    // High Res for Export
+                    const hdVp = page.getViewport({scale: 3.0}); 
+                    const cvs = document.createElement('canvas');
+                    cvs.width = hdVp.width; cvs.height = hdVp.height;
+                    await page.render({canvasContext: cvs.getContext('2d'), viewport: hdVp}).promise;
+                    
+                    addPage(cvs.toDataURL('image/jpeg', 0.8), i-1);
+                }
+            } else {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                await new Promise(r => img.onload=r); img.src=url;
+                addPage(url, 0); // Simple image
+            }
+        } catch(e) {
+            alert('错误: ' + e.message);
         }
-      } catch (e) {
-        alert('错误: ' + e.message);
-      }
-      showLoading(false);
+        showLoading(false);
     }
 
     function addPage(imgSrc, idx) {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'canvas-page';
-      if (idx === 0) { wrapper.classList.add('selected'); currPageIdx = 0; }
-      wrapper.onclick = (e) => {
-        if (e.target.closest('.mask-close')) return;
-        selectPage(idx);
-      };
+        const wrapper = document.createElement('div');
+        wrapper.className = 'canvas-page';
+        if(idx === 0) { wrapper.classList.add('selected'); currPageIdx = 0; }
+        wrapper.onclick = (e) => {
+            if(e.target.closest('.mask-close')) return;
+            selectPage(idx);
+        };
 
-      const img = document.createElement('img');
-      img.src = imgSrc;
-      img.style.width = '100%';
-      img.style.display = 'block';
-      img.draggable = false;
+        const img = document.createElement('img');
+        img.src = imgSrc;
+        img.style.width = '100%'; 
+        img.style.display = 'block';
+        img.draggable = false;
 
-      const badge = document.createElement('div');
-      badge.className = 'page-badge';
-      badge.innerText = `第 ${idx + 1} 页`;
+        const badge = document.createElement('div');
+        badge.className = 'page-badge';
+        badge.innerText = `第 ${idx+1} 页`;
 
-      wrapper.appendChild(badge);
-      wrapper.appendChild(img);
-      container.appendChild(wrapper);
+        wrapper.appendChild(badge);
+        wrapper.appendChild(img);
+        container.appendChild(wrapper);
 
-      pages.push({
-        wrapper,
-        src: imgSrc,
-        lines: [],
-        masks: []
-      });
+        pages.push({
+            wrapper,
+            src: imgSrc,
+            lines: [],
+            masks: []
+        });
     }
 
     function selectPage(idx) {
-      pages.forEach(p => p.wrapper.classList.remove('selected'));
-      pages[idx].wrapper.classList.add('selected');
-      currPageIdx = idx;
+        pages.forEach(p => p.wrapper.classList.remove('selected'));
+        pages[idx].wrapper.classList.add('selected');
+        currPageIdx = idx;
     }
 
     // --- Cut Line Logic ---
     window.addCutLine = () => {
-      if (currPageIdx === null) return alert('请先点选一页');
-      const page = pages[currPageIdx];
-      const line = document.createElement('div');
-      line.className = 'cut-line';
-      line.style.left = '50%';
-
-      // Drag logic
-      let dragging = false;
-      line.onmousedown = e => {
-        dragging = true;
-        e.stopPropagation();
-        const rect = page.wrapper.getBoundingClientRect();
-        const onMove = ev => {
-          if (!dragging) return;
-          let x = ev.clientX - rect.left;
-          x = Math.max(0, Math.min(x, rect.width));
-          line.style.left = (x / rect.width * 100) + '%';
+        if(currPageIdx===null) return alert('请先点选一页');
+        const page = pages[currPageIdx];
+        const line = document.createElement('div');
+        line.className = 'cut-line';
+        line.style.left = '50%';
+        
+        // Drag logic
+        let dragging = false;
+        line.onmousedown = e => {
+            dragging = true;
+            e.stopPropagation();
+            const rect = page.wrapper.getBoundingClientRect();
+            const onMove = ev => {
+                if(!dragging) return;
+                let x = ev.clientX - rect.left;
+                x = Math.max(0, Math.min(x, rect.width));
+                line.style.left = (x / rect.width * 100) + '%';
+            };
+            const onUp = () => { dragging = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
         };
-        const onUp = () => { dragging = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-        window.addEventListener('mousemove', onMove);
-        window.addEventListener('mouseup', onUp);
-      };
 
-      page.wrapper.appendChild(line);
-      page.lines.push(line);
+        page.wrapper.appendChild(line);
+        page.lines.push(line);
     };
 
     // --- Mask Logic with Colorful Support ---
     const MASK_COLORS = [
-      '#2196F3', // Blue
-      '#FF9800', // Orange
-      '#4CAF50', // Green
-      '#9C27B0', // Purple
-      '#E91E63', // Pink
-      '#00BCD4'  // Cyan
+        '#2196F3', // Blue
+        '#FF9800', // Orange
+        '#4CAF50', // Green
+        '#9C27B0', // Purple
+        '#E91E63', // Pink
+        '#00BCD4'  // Cyan
     ];
 
     window.addMask = (type = 'a4') => {
-      if (currPageIdx === null) return alert('请先点选一页');
-      const page = pages[currPageIdx];
-      const rect = page.wrapper.getBoundingClientRect();
+        if(currPageIdx===null) return alert('请先点选一页');
+        const page = pages[currPageIdx];
+        const rect = page.wrapper.getBoundingClientRect();
+        
+        let w, h, badgeText;
 
-      let w, h, badgeText;
+        if (type === 'free') {
+            w = rect.width * 0.4;
+            h = rect.height * 0.3; // Arbitrary rect
+            badgeText = '自由';
+        } else {
+            w = rect.width * 0.4;
+            h = w / A4_RATIO;
+            badgeText = 'A4';
+        }
+        
+        const color = MASK_COLORS[page.masks.length % MASK_COLORS.length];
 
-      if (type === 'free') {
-        w = rect.width * 0.4;
-        h = rect.height * 0.3; // Arbitrary rect
-        badgeText = '自由';
-      } else {
-        w = rect.width * 0.4;
-        h = w / A4_RATIO;
-        badgeText = 'A4';
-      }
-
-      const color = MASK_COLORS[page.masks.length % MASK_COLORS.length];
-
-      const mask = document.createElement('div');
-      mask.className = 'a4-mask';
-      mask.style.width = w + 'px'; mask.style.height = h + 'px';
-      mask.style.top = '10%'; mask.style.left = '10%';
-
-      mask.style.borderColor = color;
-      mask.style.backgroundColor = color + '26';
-
-      mask.innerHTML = `
+        const mask = document.createElement('div');
+        mask.className = 'a4-mask';
+        mask.style.width = w + 'px'; mask.style.height = h + 'px';
+        mask.style.top = '10%'; mask.style.left = '10%';
+        
+        mask.style.borderColor = color;
+        mask.style.backgroundColor = color + '26';
+        
+        mask.innerHTML = `
             <div class="mask-badge-a4" style="background:${color}">${badgeText}</div>
             <div class="mask-close"><i class="fas fa-times"></i></div>
             <div class="mask-resize" style="background:${color}"></div>
         `;
 
-      mask.querySelector('.mask-close').onclick = e => {
-        e.stopPropagation();
-        mask.remove();
-        page.masks = page.masks.filter(m => m !== mask);
-      };
-
-      let mode = null;
-      let startX, startY, startRect;
-
-      mask.onmousedown = e => {
-        e.stopPropagation();
-        selectPage(currPageIdx);
-
-        page.wrapper.querySelectorAll('.a4-mask').forEach(m => m.classList.remove('active'));
-        mask.classList.add('active');
-
-        if (e.target.classList.contains('mask-resize')) mode = 'resize';
-        else mode = 'drag';
-
-        startX = e.clientX; startY = e.clientY;
-        startRect = {
-          l: mask.offsetLeft, t: mask.offsetTop,
-          w: mask.offsetWidth, h: mask.offsetHeight
+        mask.querySelector('.mask-close').onclick = e => {
+            e.stopPropagation();
+            mask.remove();
+            page.masks = page.masks.filter(m => m !== mask);
         };
 
-        const parentRect = page.wrapper.getBoundingClientRect();
+        let mode = null; 
+        let startX, startY, startRect;
 
-        const onMove = ev => {
-          const dx = ev.clientX - startX;
-          const dy = ev.clientY - startY;
+        mask.onmousedown = e => {
+            e.stopPropagation();
+            selectPage(currPageIdx);
+            
+            page.wrapper.querySelectorAll('.a4-mask').forEach(m => m.classList.remove('active'));
+            mask.classList.add('active');
 
-          if (mode === 'drag') {
-            let nl = startRect.l + dx;
-            let nt = startRect.t + dy;
-            nl = Math.max(0, Math.min(nl, parentRect.width - startRect.w));
-            nt = Math.max(0, Math.min(nt, parentRect.height - startRect.h));
-            mask.style.left = nl + 'px';
-            mask.style.top = nt + 'px';
-          } else {
-            let nw = startRect.w + dx;
-            let nh = startRect.h + dy;
+            if(e.target.classList.contains('mask-resize')) mode = 'resize';
+            else mode = 'drag';
 
-            if (type === 'a4') {
-              // Aspect Lock check for A4
-              nh = nw / A4_RATIO;
-            }
-            // For 'free', we accept the independent dy change (nh)
+            startX = e.clientX; startY = e.clientY;
+            startRect = {
+                l: mask.offsetLeft, t: mask.offsetTop,
+                w: mask.offsetWidth, h: mask.offsetHeight
+            };
 
-            // Bounds Check
-            if (startRect.l + nw > parentRect.width) { nw = parentRect.width - startRect.l; if (type == 'a4') nh = nw / A4_RATIO; }
-            if (startRect.t + nh > parentRect.height) { nh = parentRect.height - startRect.t; if (type == 'a4') nw = nh * A4_RATIO; }
+            const parentRect = page.wrapper.getBoundingClientRect();
 
-            if (nw < 30 || nh < 30) return; // Min size
+            const onMove = ev => {
+                const dx = ev.clientX - startX;
+                const dy = ev.clientY - startY;
 
-            mask.style.width = nw + 'px';
-            mask.style.height = nh + 'px';
-          }
+                if(mode === 'drag') {
+                    let nl = startRect.l + dx;
+                    let nt = startRect.t + dy;
+                    nl = Math.max(0, Math.min(nl, parentRect.width - startRect.w));
+                    nt = Math.max(0, Math.min(nt, parentRect.height - startRect.h));
+                    mask.style.left = nl + 'px';
+                    mask.style.top = nt + 'px';
+                } else {
+                    let nw = startRect.w + dx;
+                    let nh = startRect.h + dy;
+
+                    if (type === 'a4') {
+                        // Aspect Lock check for A4
+                        nh = nw / A4_RATIO;
+                    } 
+                    // For 'free', we accept the independent dy change (nh)
+
+                    // Bounds Check
+                    if(startRect.l + nw > parentRect.width) { nw = parentRect.width - startRect.l; if(type=='a4') nh = nw / A4_RATIO; }
+                    if(startRect.t + nh > parentRect.height) { nh = parentRect.height - startRect.t; if(type=='a4') nw = nh * A4_RATIO; }
+                    
+                    if(nw < 30 || nh < 30) return; // Min size
+
+                    mask.style.width = nw + 'px';
+                    mask.style.height = nh + 'px';
+                }
+            };
+            const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
         };
-        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-        window.addEventListener('mousemove', onMove);
-        window.addEventListener('mouseup', onUp);
-      };
 
-      page.wrapper.appendChild(mask);
-      page.masks.push(mask);
+        page.wrapper.appendChild(mask);
+        page.masks.push(mask);
     };
 
     // --- Helpers ---
     window.selectAll = () => {
-      if (pages.length === 0) return;
-      if (confirm('确定要清除所有设置并为每页添加一条中间裁切线吗？')) {
-        pages.forEach((p, i) => {
-          currPageIdx = i; clearPage(); addCutLine();
-        });
-      }
+        if(pages.length===0) return;
+        if(confirm('确定要清除所有设置并为每页添加一条中间裁切线吗？')) {
+            pages.forEach((p, i) => {
+                currPageIdx = i; clearPage(); addCutLine();
+            });
+        }
     };
 
     window.clearPage = () => {
-      if (currPageIdx === null) return;
-      const p = pages[currPageIdx];
-      p.lines.forEach(el => el.remove()); p.lines = [];
-      p.masks.forEach(el => el.remove()); p.masks = [];
+        if(currPageIdx===null) return;
+        const p = pages[currPageIdx];
+        p.lines.forEach(el => el.remove()); p.lines = [];
+        p.masks.forEach(el => el.remove()); p.masks = [];
     };
 
     // --- Exports ---
     async function getBaseImage(page) {
-      const img = new Image();
-      img.src = page.src;
-      await new Promise(r => img.onload = r);
-      return img;
+        const img = new Image();
+        img.src = page.src;
+        await new Promise(r => img.onload = r);
+        return img;
     }
 
     // 1. Export Cut Lines
     window.exportCutLines = async () => {
-      if (pages.length === 0) return;
-      showLoading(true, '正在生成裁切线 PDF...');
-      const doc = new jspdf.jsPDF('p', 'pt', 'a4');
-      const pgW = doc.internal.pageSize.getWidth();
-      const pgH = doc.internal.pageSize.getHeight();
-      let added = false;
+        if(pages.length===0) return;
+        showLoading(true, '正在生成裁切线 PDF...');
+        const doc = new jspdf.jsPDF('p', 'pt', 'a4');
+        const pgW = doc.internal.pageSize.getWidth();
+        const pgH = doc.internal.pageSize.getHeight();
+        let added = false;
 
-      for (const p of pages) {
-        const img = await getBaseImage(p);
-        const lines = p.lines.map(l => parseFloat(l.style.left) / 100).sort((a, b) => a - b);
-        const ratios = [0, ...lines, 1];
+        for(const p of pages) {
+            const img = await getBaseImage(p);
+            const lines = p.lines.map(l => parseFloat(l.style.left) / 100).sort((a,b)=>a-b);
+            const ratios = [0, ...lines, 1];
 
-        for (let i = 0; i < ratios.length - 1; i++) {
-          const r1 = ratios[i];
-          const r2 = ratios[i + 1];
-          if (r2 - r1 < 0.01) continue;
-          if (added) doc.addPage(); added = true;
+            for(let i=0; i<ratios.length-1; i++) {
+                const r1 = ratios[i];
+                const r2 = ratios[i+1];
+                if(r2-r1 < 0.01) continue;
+                if(added) doc.addPage(); added = true;
 
-          const cvs = document.createElement('canvas');
-          const sw = img.naturalWidth * (r2 - r1);
-          const sh = img.naturalHeight;
-          cvs.width = sw; cvs.height = sh;
-
-          cvs.getContext('2d').drawImage(img, img.naturalWidth * r1, 0, sw, sh, 0, 0, sw, sh);
-          doc.addImage(cvs.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pgW, pgH);
+                const cvs = document.createElement('canvas');
+                const sw = img.naturalWidth * (r2-r1);
+                const sh = img.naturalHeight;
+                cvs.width = sw; cvs.height = sh;
+                
+                cvs.getContext('2d').drawImage(img, img.naturalWidth * r1, 0, sw, sh, 0, 0, sw, sh);
+                doc.addImage(cvs.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pgW, pgH);
+            }
         }
-      }
-      doc.save('cut_lines_export.pdf');
-      showLoading(false);
+        doc.save('cut_lines_export.pdf');
+        showLoading(false);
     };
 
     // 2. Export Masks (With Smart Stitching Support)
     window.exportMasks = async () => {
-      const totalMasks = pages.reduce((acc, p) => acc + p.masks.length, 0);
-      if (totalMasks === 0) return alert('未找到任何遮罩！请先添加 A4 遮罩。');
+        const totalMasks = pages.reduce((acc, p) => acc + p.masks.length, 0);
+        if(totalMasks === 0) return alert('未找到任何遮罩！请先添加 A4 遮罩。');
 
-      showLoading(true, '正在生成遮罩 PDF...');
-      const doc = new jspdf.jsPDF('p', 'pt', 'a4');
-      const pgW = doc.internal.pageSize.getWidth();
-      const pgH = doc.internal.pageSize.getHeight();
-      const smart = document.getElementById('smartStitch').checked;
+        showLoading(true, '正在生成遮罩 PDF...');
+        const doc = new jspdf.jsPDF('p', 'pt', 'a4');
+        const pgW = doc.internal.pageSize.getWidth();
+        const pgH = doc.internal.pageSize.getHeight();
+        const smart = document.getElementById('smartStitch').checked;
 
-      let allMasks = [];
-      for (const p of pages) {
-        if (p.masks.length === 0) continue;
-        const img = await getBaseImage(p);
-        const wr = p.wrapper.getBoundingClientRect();
-        const scaleX = img.naturalWidth / wr.width;
-        const scaleY = img.naturalHeight / wr.height;
-
-        // CORRECTED SORTING: Left-to-Right dominant
-        const sorted = [...p.masks].sort((a, b) => (a.offsetLeft - b.offsetLeft) || (a.offsetTop - b.offsetTop));
-
-        for (const m of sorted) {
-          const sx = m.offsetLeft * scaleX;
-          const sy = m.offsetTop * scaleY;
-          const sw = m.offsetWidth * scaleX;
-          const sh = m.offsetHeight * scaleY;
-
-          const cvs = document.createElement('canvas');
-          cvs.width = sw; cvs.height = sh;
-          cvs.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
-
-          allMasks.push({
-            data: cvs.toDataURL('image/jpeg', 0.95),
-            w: sw, // Original image pixels
-            h: sh,
-            aspect: sw / sh
-          });
-        }
-      }
-
-      if (!smart) {
-        allMasks.forEach((m, i) => {
-          if (i > 0) doc.addPage();
-          doc.addImage(m.data, 'JPEG', 0, 0, pgW, pgH);
-        });
-      } else {
-        // Smart Logic: Try to merge items that are "Strip-like" onto the same page
-        // Logic: Scan flat list.
-        // If current item width + next item width < A4 Width (with margin) -> Put side by side.
-        // Else -> Put on next line / page.
-
-        let cursorX = 0;
-        let first = true;
-
-        allMasks.forEach((m) => {
-          // Determine render dimensions on PDF
-          // For exams, usually strips are vertical -> fit Height
-          let renderH = pgH;
-          let renderW = pgH * m.aspect;
-
-          if (renderW > pgW) {
-            renderW = pgW;
-            renderH = renderW / m.aspect;
-          }
-
-          // If it's too wide, it must take a full page.
-          // If it's narrow, maybe we can fit another one?
-
-          if (cursorX + renderW > pgW) {
-            doc.addPage();
-            cursorX = 0;
-          } else {
-            if (!first) {
-              // If we are not at start of page, we are appending.
-              // Do nothing, just place.
-            } else {
-              // first page logic handled initially
+        let allMasks = [];
+        for(const p of pages) {
+            if(p.masks.length === 0) continue;
+            const img = await getBaseImage(p);
+            const wr = p.wrapper.getBoundingClientRect();
+            const scaleX = img.naturalWidth / wr.width;
+            const scaleY = img.naturalHeight / wr.height;
+            
+            // Sort: Left-to-Right dominant (for Columns), then Top-to-Bottom
+            const sorted = [...p.masks].sort((a,b) => (a.offsetLeft - b.offsetLeft) || (a.offsetTop - b.offsetTop));
+            
+            for(const m of sorted) {
+                const sx = m.offsetLeft * scaleX;
+                const sy = m.offsetTop * scaleY;
+                const sw = m.offsetWidth * scaleX;
+                const sh = m.offsetHeight * scaleY;
+                
+                const cvs = document.createElement('canvas');
+                cvs.width = sw; cvs.height = sh;
+                cvs.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+                
+                allMasks.push({
+                    data: cvs.toDataURL('image/jpeg', 0.95),
+                    w: sw, // Original image pixels
+                    h: sh,
+                    aspect: sw/sh
+                });
             }
-          }
+        }
 
-          if (first) first = false; // first item just placed on existing page 1
+        if (!smart) {
+            allMasks.forEach((m, i) => {
+                if(i > 0) doc.addPage();
+                doc.addImage(m.data, 'JPEG', 0, 0, pgW, pgH);
+            });
+        } else {
+            // Smart Logic: Merge narrow strips onto same page, Full A4s onto new pages.
+            
+            let cursorX = 0;
+            const GUTTER = 20; // Space between stitched columns
 
-          doc.addImage(m.data, 'JPEG', cursorX, 0, renderW, renderH);
-          cursorX += renderW;
+            allMasks.forEach((m) => {
+                // Determine render dimensions
+                // For exams, usually strips are vertical -> fit Height
+                let renderH = pgH;
+                let renderW = pgH * m.aspect;
+                
+                // If wide (like A4 landscape or full A4), clamp to page width
+                if (renderW > pgW) {
+                     renderW = pgW; 
+                     renderH = renderW / m.aspect;
+                }
+                
+                // Check if fits on current line/page
+                // Relaxed check: allow small overflow or just use exact math
+                if (cursorX + renderW > pgW + 5) { // +5 tolerance
+                    doc.addPage();
+                    cursorX = 0;
+                }
+                
+                // Draw
+                doc.addImage(m.data, 'JPEG', cursorX, 0, renderW, renderH);
+                
+                // Advance cursor safely
+                cursorX += renderW + GUTTER;
+            });
+        }
 
-          // Simple logic: We only support single-row side-by-side stitching for now (Columns)
-          // If cursorX is still small, next item might fit.
-        });
-      }
-
-      doc.save(smart ? 'smart_stitched_export.pdf' : 'masks_export.pdf');
-      showLoading(false);
+        doc.save(smart ? 'smart_stitched_export.pdf' : 'masks_export.pdf');
+        showLoading(false);
     };
 
     // Utils
     function showLoading(show, txt) {
-      document.getElementById('loading').className = show ? 'loading-mask visible' : 'loading-mask';
-      if (txt) document.getElementById('loadingText').innerText = txt;
+        document.getElementById('loading').className = show ? 'loading-mask visible' : 'loading-mask';
+        if(txt) document.getElementById('loadingText').innerText = txt;
     }
     function updateProgress(pct) {
-      document.getElementById('progressBar').style.width = (pct * 100) + '%';
+        document.getElementById('progressBar').style.width = (pct*100) + '%';
     }
 
   </script>
