@@ -354,7 +354,8 @@
                 class="fas fa-chevron-right"></i></button>
             <div style="width:1px; height:20px; background:#ddd; margin:0 10px"></div>
             <span>缩放:</span>
-            <input id="scale" type="range" min="0.5" max="3.0" step="0.1" value="1.0" style="width:100px">
+            <input id="scale" type="range" min="0.5" max="3.0" step="0.1" value="1.0" style="width:100px"
+              title="滚动鼠标滚轮也可缩放">
           </div>
 
           <div class="canvas-wrapper">
@@ -404,7 +405,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
   <script>
-    // PDF.js worker setup
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     }
@@ -427,18 +427,15 @@
       vRuler: document.getElementById('vertical-ruler')
     };
 
-    // File Handling
     els.fileInput.addEventListener('change', e => {
       const newFiles = Array.from(e.target.files).filter(f => f.type === 'application/pdf');
       if (newFiles.length === 0) return alert('请选择 PDF 文件');
-
       const startIdx = files.length;
       newFiles.forEach((f, i) => files.push({ file: f, id: startIdx + i }));
       renderFileList();
       if (!currentFile) loadFile(files[0]);
     });
 
-    // Drag & Drop
     const dropArea = document.querySelector('.upload-area');
     dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.transform = 'scale(1.02)'; });
     dropArea.addEventListener('dragleave', e => { e.preventDefault(); dropArea.style.transform = 'scale(1)'; });
@@ -474,11 +471,13 @@
       renderPage(1);
     }
 
+    let renderTask = null;
     async function renderPage(num) {
       if (!pdfDoc) return;
-      const page = await pdfDoc.getPage(num);
-      const viewport = page.getViewport({ scale: 1.5 });
+      if (renderTask) await renderTask.cancel();
 
+      const page = await pdfDoc.getPage(num);
+      const viewport = page.getViewport({ scale: 1.5 }); // Base scale
       const uiScale = parseFloat(document.getElementById('scale').value);
       const finalViewport = page.getViewport({ scale: viewport.scale * uiScale });
 
@@ -487,17 +486,14 @@
       els.overlay.width = finalViewport.width;
       els.overlay.height = finalViewport.height;
 
-      await page.render({
-        canvasContext: els.ctx,
-        viewport: finalViewport
-      }).promise;
+      renderTask = page.render({ canvasContext: els.ctx, viewport: finalViewport });
+      await renderTask.promise;
 
       document.getElementById('page-info').innerText = `${num} / ${pdfDoc.numPages}`;
       drawRulers(finalViewport.width, finalViewport.height);
       drawOverlay();
     }
 
-    // Overlay & Interaction
     function drawOverlay() {
       els.octx.clearRect(0, 0, els.overlay.width, els.overlay.height);
       const w = els.overlay.width, h = els.overlay.height;
@@ -508,7 +504,6 @@
         els.octx.setLineDash([5, 5]);
         const cw = (w - gridSpec.margin * 2) / gridSpec.cols;
         const ch = (h - gridSpec.margin * 2) / gridSpec.rows;
-
         for (let i = 1; i < gridSpec.rows; i++) {
           let y = gridSpec.margin + i * ch;
           els.octx.beginPath(); els.octx.moveTo(gridSpec.margin, y); els.octx.lineTo(w - gridSpec.margin, y); els.octx.stroke();
@@ -526,7 +521,6 @@
 
       customLines.h.forEach(y => {
         els.octx.beginPath(); els.octx.moveTo(0, y); els.octx.lineTo(w, y); els.octx.stroke();
-        // Handle
         els.octx.fillStyle = 'white'; els.octx.beginPath(); els.octx.arc(20, y, 4, 0, Math.PI * 2); els.octx.fill(); els.octx.stroke();
       });
       customLines.v.forEach(x => {
@@ -536,9 +530,24 @@
     }
 
     let dragging = null;
+
+    // Zoom Handling
+    els.overlay.addEventListener('wheel', e => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        const scaleInput = document.getElementById('scale');
+        let val = parseFloat(scaleInput.value);
+        if (e.deltaY < 0) val = Math.min(val + 0.1, 3.0);
+        else val = Math.max(val - 0.1, 0.5);
+        scaleInput.value = val.toFixed(1);
+        renderPage(currentPage);
+      }
+    }, { passive: false });
+
     els.overlay.addEventListener('mousedown', e => {
       const rect = els.overlay.getBoundingClientRect();
       const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      // Note: e.clientX is viewport relative, rect is viewport relative. Diff is accurate local coord.
 
       for (let i = 0; i < customLines.h.length; i++) {
         if (Math.abs(y - customLines.h[i]) < 10) { dragging = { type: 'h', idx: i, offset: y - customLines.h[i] }; return; }
@@ -548,16 +557,28 @@
       }
     });
 
-    window.addEventListener('mousemove', e => {
-      if (!dragging) return;
+    els.overlay.addEventListener('mousemove', e => {
       const rect = els.overlay.getBoundingClientRect();
-      if (dragging.type === 'h') customLines.h[dragging.idx] = e.clientY - rect.top - dragging.offset;
-      else customLines.v[dragging.idx] = e.clientX - rect.left - dragging.offset;
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+
+      // Cursor Logic
+      let cursor = 'crosshair';
+      if (dragging) {
+        cursor = dragging.type === 'h' ? 'row-resize' : 'col-resize';
+      } else {
+        for (let i = 0; i < customLines.h.length; i++) if (Math.abs(y - customLines.h[i]) < 10) cursor = 'row-resize';
+        for (let i = 0; i < customLines.v.length; i++) if (Math.abs(x - customLines.v[i]) < 10) cursor = 'col-resize';
+      }
+      els.overlay.style.cursor = cursor;
+
+      if (!dragging) return;
+      if (dragging.type === 'h') customLines.h[dragging.idx] = y - dragging.offset;
+      else customLines.v[dragging.idx] = x - dragging.offset;
       drawOverlay();
     });
-    window.addEventListener('mouseup', () => dragging = null);
 
-    // Buttons
+    window.addEventListener('mouseup', () => dragging = null);
+    // Bind buttons
     document.getElementById('apply-grid').onclick = () => {
       gridSpec.rows = parseInt(document.getElementById('rows').value) || 1;
       gridSpec.cols = parseInt(document.getElementById('cols').value) || 1;
@@ -572,11 +593,9 @@
     document.getElementById('next-page').onclick = () => { if (pdfDoc && currentPage < pdfDoc.numPages) { currentPage++; renderPage(currentPage); } };
     document.getElementById('scale').oninput = () => renderPage(currentPage);
 
-    // Slicing Logic - Full Implementation
     function computeSlices() {
       const w = els.pdfCanvas.width, h = els.pdfCanvas.height;
       let slices = [];
-      // Preference: Custom Lines > Grid
       if (customLines.h.length || customLines.v.length) {
         const xs = [0, ...customLines.v.sort((a, b) => a - b), w];
         const ys = [0, ...customLines.h.sort((a, b) => a - b), h];
@@ -595,11 +614,9 @@
       const slices = computeSlices();
       const container = document.getElementById('slices-container');
       container.innerHTML = '';
-
       const off = document.createElement('canvas');
       off.width = els.pdfCanvas.width; off.height = els.pdfCanvas.height;
       off.getContext('2d').drawImage(els.pdfCanvas, 0, 0);
-
       slices.forEach((s, i) => {
         const div = document.createElement('div');
         div.className = 'slice-item';
@@ -613,18 +630,14 @@
       });
     };
 
-    // Export Implementation
     document.getElementById('export-zip').onclick = async () => {
       if (!pdfDoc) return alert('请先加载 PDF');
       const zip = new JSZip();
       const format = document.getElementById('img-format').value;
-      // Note: For simplicity, this exports slices of the CURRENT view/page
-      // A full implementation would loop through all pages if desired
       const slices = computeSlices();
       const off = document.createElement('canvas');
       off.width = els.pdfCanvas.width; off.height = els.pdfCanvas.height;
       off.getContext('2d').drawImage(els.pdfCanvas, 0, 0);
-
       for (let i = 0; i < slices.length; i++) {
         const s = slices[i];
         const c = document.createElement('canvas'); c.width = s.w; c.height = s.h;
@@ -650,13 +663,6 @@
         if (i % 100 === 0) { m.style.width = '10px'; m.innerText = i; }
         els.vRuler.appendChild(m);
       }
-    }
-
-    // Template Storage
-    document.getElementById('save-template').onclick = () => { localStorage.setItem('pdf-tpl', JSON.stringify({ grid: gridSpec, lines: customLines })); alert('已保存'); };
-    document.getElementById('load-template').onclick = () => {
-      const t = JSON.parse(localStorage.getItem('pdf-tpl'));
-      if (t) { gridSpec = t.grid; customLines = t.lines; document.getElementById('rows').value = gridSpec.rows; document.getElementById('cols').value = gridSpec.cols; drawOverlay(); }
     }
   </script>
 </body>
