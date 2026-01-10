@@ -387,12 +387,7 @@
                 <li>拖动右下角圆点可调整大小（锁定 A4 比例）。</li>
               </ul>
             </li>
-            <li><b>导出：</b>
-              <ul>
-                <li><b>导出裁切线 PDF：</b>按红色分割线逻辑生成。</li>
-                <li><b>导出遮罩 PDF：</b>仅导出遮罩框选的内容，每个遮罩一页。</li>
-              </ul>
-            </li>
+            <li><b>智能拼接：</b>勾选右侧“智能拼接”开关后，导出的遮罩若宽度允许，会自动合并到同一页 PDF（例如将跨页的两列题目拼在一页）。</li>
           </ul>
         </div>
       </div>
@@ -423,6 +418,17 @@
     </button>
 
     <!-- Exports -->
+    <div
+      style="background: rgba(40, 167, 69, 0.1); padding: 10px; border-radius: 8px; margin-top: 10px; border: 1px solid #c3e6cb;">
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#155724; cursor:pointer">
+        <input type="checkbox" id="smartStitch" checked>
+        <b>开启智能拼接 (自动紧凑排版)</b>
+      </label>
+      <div style="font-size:11px; color:#155724; opacity:0.8; margin-top:4px; margin-left:20px;">
+        自动将多个窄选区拼在同一页 (解决跨页拼接问题)
+      </div>
+    </div>
+
     <button class="float-btn btn-green" onclick="exportCutLines()" style="margin-top: 10px;">
       <i class="fas fa-cut"></i> 导出裁切线PDF
     </button>
@@ -576,11 +582,9 @@
       const page = pages[currPageIdx];
       const rect = page.wrapper.getBoundingClientRect();
 
-      // Initial size (A4 ratio)
       let w = rect.width * 0.4;
       let h = w / A4_RATIO;
 
-      // Pick Color based on index for this page (or globally? locally is better)
       const color = MASK_COLORS[page.masks.length % MASK_COLORS.length];
 
       const mask = document.createElement('div');
@@ -588,9 +592,8 @@
       mask.style.width = w + 'px'; mask.style.height = h + 'px';
       mask.style.top = '10%'; mask.style.left = '10%';
 
-      // Apply Color Styles
       mask.style.borderColor = color;
-      mask.style.backgroundColor = color + '26'; // ~15% opacity hex
+      mask.style.backgroundColor = color + '26';
 
       mask.innerHTML = `
             <div class="mask-badge-a4" style="background:${color}">A4</div>
@@ -604,15 +607,13 @@
         page.masks = page.masks.filter(m => m !== mask);
       };
 
-      // Interaction (Drag & Resize)
-      let mode = null; // 'drag' | 'resize'
+      let mode = null;
       let startX, startY, startRect;
 
       mask.onmousedown = e => {
         e.stopPropagation();
         selectPage(currPageIdx);
 
-        // Highlight
         page.wrapper.querySelectorAll('.a4-mask').forEach(m => m.classList.remove('active'));
         mask.classList.add('active');
 
@@ -640,13 +641,10 @@
             mask.style.top = nt + 'px';
           } else {
             let nw = startRect.w + dx;
-            // Aspect Lock check
             let nh = nw / A4_RATIO;
-
             if (startRect.l + nw > parentRect.width) { nw = parentRect.width - startRect.l; nh = nw / A4_RATIO; }
             if (startRect.t + nh > parentRect.height) { nh = parentRect.height - startRect.t; nw = nh * A4_RATIO; }
             if (nw < 50) return;
-
             mask.style.width = nw + 'px';
             mask.style.height = nh + 'px';
           }
@@ -696,7 +694,6 @@
 
       for (const p of pages) {
         const img = await getBaseImage(p);
-        // Sort lines
         const lines = p.lines.map(l => parseFloat(l.style.left) / 100).sort((a, b) => a - b);
         const ratios = [0, ...lines, 1];
 
@@ -704,20 +701,14 @@
           const r1 = ratios[i];
           const r2 = ratios[i + 1];
           if (r2 - r1 < 0.01) continue;
-
           if (added) doc.addPage(); added = true;
 
           const cvs = document.createElement('canvas');
-          // Target width is slice width, target height is full height
           const sw = img.naturalWidth * (r2 - r1);
           const sh = img.naturalHeight;
           cvs.width = sw; cvs.height = sh;
 
-          cvs.getContext('2d').drawImage(img,
-            img.naturalWidth * r1, 0, sw, sh,
-            0, 0, sw, sh
-          );
-
+          cvs.getContext('2d').drawImage(img, img.naturalWidth * r1, 0, sw, sh, 0, 0, sw, sh);
           doc.addImage(cvs.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pgW, pgH);
         }
       }
@@ -725,10 +716,8 @@
       showLoading(false);
     };
 
-    // 2. Export Masks
+    // 2. Export Masks (With Smart Stitching Support)
     window.exportMasks = async () => {
-      if (pages.length === 0) return;
-      // Verify we have masks
       const totalMasks = pages.reduce((acc, p) => acc + p.masks.length, 0);
       if (totalMasks === 0) return alert('未找到任何遮罩！请先添加 A4 遮罩。');
 
@@ -736,44 +725,88 @@
       const doc = new jspdf.jsPDF('p', 'pt', 'a4');
       const pgW = doc.internal.pageSize.getWidth();
       const pgH = doc.internal.pageSize.getHeight();
-      let added = false;
+      const smart = document.getElementById('smartStitch').checked;
 
+      let allMasks = [];
       for (const p of pages) {
         if (p.masks.length === 0) continue;
         const img = await getBaseImage(p);
-
-        // Wrapper dimensions for mapping
         const wr = p.wrapper.getBoundingClientRect();
         const scaleX = img.naturalWidth / wr.width;
-        // scaleY should be same if aspect maintained, but let's calc to be safe
         const scaleY = img.naturalHeight / wr.height;
 
-        // Sort masks
-        const masks = [...p.masks].sort((a, b) => (a.offsetTop - b.offsetTop) || (a.offsetLeft - b.offsetLeft));
+        const sorted = [...p.masks].sort((a, b) => (a.offsetTop - b.offsetTop) || (a.offsetLeft - b.offsetLeft));
 
-        for (const m of masks) {
-          if (added) doc.addPage(); added = true;
-
-          // Get geometry relative to wrapper
-          const mx = m.offsetLeft;
-          const my = m.offsetTop;
-          const mw = m.offsetWidth;
-          const mh = m.offsetHeight;
-
-          // Map to source image
-          const sx = mx * scaleX;
-          const sy = my * scaleY;
-          const sw = mw * scaleX;
-          const sh = mh * scaleY;
+        for (const m of sorted) {
+          const sx = m.offsetLeft * scaleX;
+          const sy = m.offsetTop * scaleY;
+          const sw = m.offsetWidth * scaleX;
+          const sh = m.offsetHeight * scaleY;
 
           const cvs = document.createElement('canvas');
           cvs.width = sw; cvs.height = sh;
           cvs.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
-          doc.addImage(cvs.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pgW, pgH);
+          allMasks.push({
+            data: cvs.toDataURL('image/jpeg', 0.95),
+            w: sw, // Original image pixels
+            h: sh,
+            aspect: sw / sh
+          });
         }
       }
-      doc.save('masks_export.pdf');
+
+      if (!smart) {
+        allMasks.forEach((m, i) => {
+          if (i > 0) doc.addPage();
+          doc.addImage(m.data, 'JPEG', 0, 0, pgW, pgH);
+        });
+      } else {
+        // Smart Logic: Try to merge items that are "Strip-like" onto the same page
+        // Logic: Scan flat list.
+        // If current item width + next item width < A4 Width (with margin) -> Put side by side.
+        // Else -> Put on next line / page.
+
+        let cursorX = 0;
+        let first = true;
+
+        allMasks.forEach((m) => {
+          // Determine render dimensions on PDF
+          // For exams, usually strips are vertical -> fit Height
+          let renderH = pgH;
+          let renderW = pgH * m.aspect;
+
+          if (renderW > pgW) {
+            renderW = pgW;
+            renderH = renderW / m.aspect;
+          }
+
+          // If it's too wide, it must take a full page.
+          // If it's narrow, maybe we can fit another one?
+
+          if (cursorX + renderW > pgW) {
+            doc.addPage();
+            cursorX = 0;
+          } else {
+            if (!first) {
+              // If we are not at start of page, we are appending.
+              // Do nothing, just place.
+            } else {
+              // first page logic handled initially
+            }
+          }
+
+          if (first) first = false; // first item just placed on existing page 1
+
+          doc.addImage(m.data, 'JPEG', cursorX, 0, renderW, renderH);
+          cursorX += renderW;
+
+          // Simple logic: We only support single-row side-by-side stitching for now (Columns)
+          // If cursorX is still small, next item might fit.
+        });
+      }
+
+      doc.save(smart ? 'smart_stitched_export.pdf' : 'masks_export.pdf');
       showLoading(false);
     };
 
