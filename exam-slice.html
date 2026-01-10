@@ -760,7 +760,8 @@
         const scaleX = img.naturalWidth / wr.width;
         const scaleY = img.naturalHeight / wr.height;
 
-        const sorted = [...p.masks].sort((a, b) => (a.offsetTop - b.offsetTop) || (a.offsetLeft - b.offsetLeft));
+        // CORRECTED SORTING: Left-to-Right dominant
+        const sorted = [...p.masks].sort((a, b) => (a.offsetLeft - b.offsetLeft) || (a.offsetTop - b.offsetTop));
 
         for (const m of sorted) {
           const sx = m.offsetLeft * scaleX;
