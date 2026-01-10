@@ -1,89 +1,140 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A3/图片处理工具集</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: #333;
         }
+
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             width: 100%;
-            padding: 2rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
+            padding: 40px;
         }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
         .card {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             text-decoration: none;
             color: #333;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
+            position: relative;
+            overflow: hidden;
         }
+
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            background: white;
         }
+
         .icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
+
         .title {
-            font-size: 1.25rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-            color: #2c3e50;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #2d3748;
         }
+
         .description {
-            font-size: 0.9rem;
-            color: #666;
-            line-height: 1.5;
+            font-size: 0.95rem;
+            color: #718096;
+            line-height: 1.6;
         }
-        h1 {
-            grid-column: 1 / -1;
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 1rem;
+
+        .badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #ff7675;
+            color: white;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(255, 118, 117, 0.4);
         }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <h1>🛠️ A3/图片处理工具集</h1>
-        
-        <a href="exam-slice.html" class="card">
-            <div class="icon">📄</div>
-            <div class="title">A3试卷转A4 (PDF版)</div>
-            <div class="description">专门用于将A3横版试卷拆分为A4竖版PDF，支持添加裁切线，适合打印。</div>
-        </a>
+        <div class="header">
+            <h1>🛠️ 智能图像处理工坊</h1>
+            <p>基于浏览器的高性能图片/PDF处理套件，安全高效，隐私无忧</p>
+        </div>
 
-        <a href="pdf-slice.html" class="card">
-            <div class="icon">✂️</div>
-            <div class="title">PDF精细切割工具</div>
-            <div class="description">功能强大的PDF切割工具，支持网格/自定义线切割，带标尺，导出高清图片/ZIP。</div>
-        </a>
+        <div class="grid">
+            <a href="exam-slice.html" class="card">
+                <div class="icon"><i class="fas fa-file-contract"></i></div>
+                <div class="title">试卷重排助手</div>
+                <div class="description">专为教育场景设计，将 A3 横版试卷智能拆分为 A4 竖版 PDF。支持自动分页、裁切线设置，打印更方便。</div>
+            </a>
 
-        <a href="image-slice.html" class="card">
-            <div class="icon">🧩</div>
-            <div class="title">图片拼图与切割</div>
-            <div class="description">图片批处理工具，支持多图拼接长图，或将单图切割为多份。</div>
-        </a>
+            <a href="pdf-slice.html" class="card">
+                <div class="badge">PRO</div>
+                <div class="icon"><i class="fas fa-cut"></i></div>
+                <div class="title">PDF 精细切割</div>
+                <div class="description">专业级 PDF 处理工具。支持滚轮缩放、精准网格覆盖、自由辅助线拖拽。所见即所得，一键批量导出高清切片。</div>
+            </a>
+
+            <a href="image-slice.html" class="card">
+                <div class="badge">UPDATE</div>
+                <div class="icon"><i class="fas fa-images"></i></div>
+                <div class="title">图片拼剪大师</div>
+                <div class="description">多功能图片处理。支持纵向/横向长图拼接，新增 <b>网格自由裁切</b> 功能，轻松制作九宫格或任意矩阵切片。</div>
+            </a>
+        </div>
     </div>
 </body>
+
 </html>
