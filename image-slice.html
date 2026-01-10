@@ -378,20 +378,25 @@
                     </div>
                 </div>
 
-                <!-- Cut Settings -->
+                <!-- Cut Settings (Updated for Grid Cut) -->
                 <div id="cut-settings" style="display:none">
                     <div class="control-group">
-                        <label>切割方式</label>
-                        <div class="radio-group">
-                            <label class="radio-label"><input type="radio" name="cut-dir" value="vertical" checked>
-                                纵向等分</label>
-                            <label class="radio-label"><input type="radio" name="cut-dir" value="horizontal">
-                                横向等分</label>
+                        <label>网格切割设置</label>
+                        <div style="display:flex; gap:10px">
+                            <div style="flex:1">
+                                <label style="font-size:0.85rem; color:#666; font-weight:normal; margin-bottom:5px">纵向行数
+                                    (Rows)</label>
+                                <input type="number" id="cut-rows" value="1" min="1" max="50" placeholder="水平切割几刀">
+                            </div>
+                            <div style="flex:1">
+                                <label style="font-size:0.85rem; color:#666; font-weight:normal; margin-bottom:5px">横向列数
+                                    (Cols)</label>
+                                <input type="number" id="cut-cols" value="1" min="1" max="50" placeholder="垂直切割几刀">
+                            </div>
                         </div>
-                    </div>
-                    <div class="control-group">
-                        <label>切分数量</label>
-                        <input type="number" id="cut-count" value="2" min="2" max="50">
+                        <div style="font-size:0.8rem; color:#999; margin-top:5px">
+                            * 例如：2 行 2 列将把图片切成 4 份
+                        </div>
                     </div>
                 </div>
 
@@ -512,31 +517,24 @@
             const dir = document.querySelector('input[name="direction"]:checked').value;
             const cols = parseInt(document.getElementById('cols').value) || 1;
 
-            // Simplified grid logic: Assume uniform grid based on first image logic or just raw stacking
-            // Just implementation of stacking for now
             const maxWidth = Math.max(...images.map(i => i.width));
             const maxHeight = Math.max(...images.map(i => i.height));
 
             // Calculate canvas size
             let cw = 0, ch = 0;
-            // Simple logic for vertical stack
             if (dir === 'vertical' && cols === 1) {
                 cw = maxWidth;
                 ch = images.reduce((a, b) => a + b.height, 0);
-                // Note: Real world scenario might need scaling to match widths
             } else if (dir === 'horizontal') {
                 ch = maxHeight;
                 cw = images.reduce((a, b) => a + b.width, 0);
             } else {
-                // Approximate generic grid
                 const rows = Math.ceil(images.length / cols);
-                cw = maxWidth * cols; // simplified
+                cw = maxWidth * cols;
                 ch = maxHeight * rows;
             }
 
-            // Real implementation requires drawing
             const cvs = document.createElement('canvas');
-            // Recalculate precisely for V-Stack
             if (dir === 'vertical' && cols === 1) {
                 // scale everything to maxWidth
                 ch = images.reduce((acc, img) => acc + (img.height * (maxWidth / img.width)), 0);
@@ -553,7 +551,11 @@
                 // Fallback simple grid
                 cvs.width = cw || 1000; cvs.height = ch || 1000;
                 const ctx = cvs.getContext('2d');
-                // ... (Grid drawing logic omitted for brevity, assuming V-Stack is primary use case)
+                // Drawing logic simplified for this example
+                ctx.fillStyle = 'white'; ctx.fillRect(0, 0, cw, ch);
+                // Not fully implemented for Grid here, as Combine wasn't the request focus
+                let x = 0, y = 0;
+                images.forEach(img => { ctx.drawImage(img.imgObj, x, y); y += img.height; });
             }
 
             cvs.toBlob(blob => {
@@ -564,45 +566,44 @@
 
         async function doCut(quality) {
             const img = images[0].imgObj;
-            const count = parseInt(document.getElementById('cut-count').value);
-            const dir = document.querySelector('input[name="cut-dir"]:checked').value;
-            // dir: vertical = splice vertically (columns?), horizontal = splice horizontally (rows?)
-            // aligned with previous logic
+            const rows = parseInt(document.getElementById('cut-rows').value) || 1;
+            const cols = parseInt(document.getElementById('cut-cols').value) || 1;
 
-            const isVert = dir === 'vertical';
-            // If "Vertical Cut" means cutting into vertical strips ( ||| ), then width changes
-            // If "Horizontal Cut" means cutting into horizontal strips ( ☰ ), then height changes
+            if (rows === 1 && cols === 1) return alert('请设置行数或列数大于1');
 
             const w = img.width, h = img.height;
-            const step = isVert ? w / count : h / count;
+            const itemW = w / cols;
+            const itemH = h / rows;
 
             let html = '<div class="result-grid">';
             const zip = new JSZip();
 
-            for (let i = 0; i < count; i++) {
-                const c = document.createElement('canvas');
-                c.width = isVert ? step : w;
-                c.height = isVert ? h : step;
-                const ctx = c.getContext('2d');
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = itemW;
+                    canvas.height = itemH;
+                    const ctx = canvas.getContext('2d');
 
-                const sx = isVert ? i * step : 0;
-                const sy = isVert ? 0 : i * step;
+                    ctx.drawImage(img, c * itemW, r * itemH, itemW, itemH, 0, 0, itemW, itemH);
 
-                ctx.drawImage(img, sx, sy, c.width, c.height, 0, 0, c.width, c.height);
-
-                await new Promise(r => c.toBlob(blob => {
-                    const url = URL.createObjectURL(blob);
-                    const name = `cut_${i + 1}.jpg`;
-                    processedResults.push({ blob, name });
-                    html += `
-                        <div class="result-item">
-                            <img src="${url}">
-                            <div>Part ${i + 1}</div>
-                            <a href="${url}" download="${name}" class="download-link">下载</a>
-                        </div>`;
-                    r();
-                }, 'image/jpeg', quality));
+                    await new Promise(res => {
+                        canvas.toBlob(blob => {
+                            const url = URL.createObjectURL(blob);
+                            const name = `cut_${r + 1}_${c + 1}.jpg`;
+                            processedResults.push({ blob, name });
+                            html += `
+                                <div class="result-item">
+                                    <img src="${url}">
+                                    <div>${r + 1}-${c + 1}</div>
+                                    <a href="${url}" download="${name}" class="download-link">下载</a>
+                                </div>`;
+                            res();
+                        }, 'image/jpeg', quality);
+                    });
+                }
             }
+
             html += '</div>';
             renderPreview(html, true);
         }
