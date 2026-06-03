@@ -12,8 +12,8 @@ import shutil
 
 app = FastAPI(title="Exam Slicer Skill", description="自动将 A3 试卷切割为 A4")
 
-UPLOAD_DIR = "uploads"
-PROCESSED_DIR = "processed"
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+PROCESSED_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "processed")
 
 # 确保目录存在
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -134,4 +134,4 @@ async def slice_pdf_endpoint(file: UploadFile = File(...), mode: str = "2_col"):
 if __name__ == "__main__":
     print("启动 Skill 服务: http://127.0.0.1:8000")
     print("API 文档: http://127.0.0.1:8000/docs")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
