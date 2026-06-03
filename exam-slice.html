@@ -177,21 +177,8 @@
         bottom: 20px;
       }
 
-      /* Increase touch targets on mobile */
-      .mask-close {
-        width: 36px;
-        height: 36px;
-        font-size: 20px;
-        top: -18px;
-        right: -18px;
-      }
-
-      .mask-resize {
-        width: 32px;
-        height: 32px;
-        bottom: -16px;
-        right: -16px;
-        border-width: 4px;
+      .controls-body {
+        max-height: 60vh;
       }
     }
 
@@ -485,12 +472,12 @@
           <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
           <div>拖拽或点击上传文件</div>
           <div style="font-size: 0.7rem; margin-top: 5px; opacity: 0.8">支持 PDF / JPG / PNG</div>
-          <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,image/*">
+          <input type="file" id="fileInput" class="file-input" accept=".pdf,image/*">
         </div>
         <div class="guide">
           <h3>📖 操作指南</h3>
           <ul>
-            <li><b>上传文件：</b>支持 A3 横版试卷或图片（支持批量上传）。</li>
+            <li><b>上传文件：</b>支持 A3 横版试卷或图片。</li>
             <li><b>添加裁切线：</b>适用于规则的左右分栏试卷。添加红线后，按线分割。</li>
             <li><b>添加 A4 遮罩：</b>锁定 A4 比例，适合标准 A4 提取。</li>
             <li><b>添加自由遮罩：</b><b>无比例限制</b>，可自由拉伸长宽，适合不规则或长条形内容。</li>
@@ -597,52 +584,42 @@
 
     // --- Core Handling ---
     document.getElementById('uploadBtn').onclick = () => fileInput.click();
-    fileInput.onchange = e => handleFiles(e.target.files);
+    fileInput.onchange = e => handleFile(e.target.files[0]);
 
-    async function handleFiles(fileList) {
-      if (!fileList || fileList.length === 0) return;
+    async function handleFile(file) {
+      if (!file) return;
       pages = []; currPageIdx = null; container.innerHTML = '';
       showLoading(true, '正在解析文件...');
 
-      // Sort files naturally: e.g. page_1.jpg, page_2.jpg, page_10.jpg
-      const sortedFiles = Array.from(fileList).sort((a, b) =>
-        a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
-      );
-
       try {
-        let globalPageIndex = 0;
+        if (file.type === 'application/pdf') {
+          const buf = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument(buf).promise;
+          for (let i = 1; i <= pdf.numPages; i++) {
+            updateProgress(i / pdf.numPages);
+            const page = await pdf.getPage(i);
+            const vp = page.getViewport({ scale: 1.5 }); // View Scale
 
-        for (const file of sortedFiles) {
-          if (file.type === 'application/pdf') {
-            const buf = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument(buf).promise;
-            for (let i = 1; i <= pdf.numPages; i++) {
-              updateProgress((i / pdf.numPages) * 100); // Simple progress
-              const page = await pdf.getPage(i);
-              const vp = page.getViewport({ scale: 1.5 }); // View Scale
+            // High Res for Export (Restored to 2.5 for stability + quality)
+            const hdVp = page.getViewport({ scale: 2.5 });
+            const cvs = document.createElement('canvas');
+            cvs.width = hdVp.width; cvs.height = hdVp.height;
+            await page.render({ canvasContext: cvs.getContext('2d'), viewport: hdVp }).promise;
 
-              // High Res for Export
-              const hdVp = page.getViewport({ scale: 3.0 });
-              const cvs = document.createElement('canvas');
-              cvs.width = hdVp.width; cvs.height = hdVp.height;
-              await page.render({ canvasContext: cvs.getContext('2d'), viewport: hdVp }).promise;
-
-              addPage(cvs.toDataURL('image/jpeg', 0.8), globalPageIndex++);
-            }
-          } else if (file.type.startsWith('image/')) {
-            const url = URL.createObjectURL(file);
-            const img = new Image();
-            await new Promise((resolve, reject) => {
-              img.onload = resolve;
-              img.onerror = () => reject(new Error('图片加载失败: ' + file.name));
-              img.src = url;
-            });
-            addPage(url, globalPageIndex++);
+            addPage(cvs.toDataURL('image/jpeg', 0.95), i - 1);
           }
+        } else {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = () => reject(new Error('图片加载失败'));
+            img.src = url;
+          });
+          addPage(url, 0); // Simple image
         }
       } catch (e) {
         alert('错误: ' + e.message);
-        console.error(e);
       }
       showLoading(false);
     }
@@ -1031,34 +1008,49 @@
         });
       } else {
         // Smart Logic: Merge narrow strips onto same page, Full A4s onto new pages.
-
         let cursorX = 0;
         const GUTTER = 20; // Space between stitched columns
 
         allMasks.forEach((m) => {
-          // Determine render dimensions
-          // For exams, usually strips are vertical -> fit Height
           let renderH = pgH;
           let renderW = pgH * m.aspect;
 
-          // If wide (like A4 landscape or full A4), clamp to page width
-          if (renderW > pgW) {
-            renderW = pgW;
-            renderH = renderW / m.aspect;
+          // Check for "Wide" block (e.g. > 60% of page width)
+          // Forces big masks to have their own page
+          const isWide = renderW > (pgW * 0.6);
+
+          if (isWide) {
+            // If we have pending columns on this page, finish them first
+            if (cursorX > 0) { doc.addPage(); cursorX = 0; }
+
+            // Fit to page width if too wide
+            if (renderW > pgW) {
+              renderW = pgW;
+              renderH = renderW / m.aspect;
+            }
+
+            doc.addImage(m.data, 'JPEG', 0, 0, renderW, renderH);
+
+            // Force next item to start on new page
+            cursorX = pgW + 9999;
+
+          } else {
+            // Narrow Column Logic (Side-by-See)
+            // Check if fits on current line/page
+            if (cursorX > 0 && (cursorX + renderW > pgW + 5)) { // +5 tolerance
+              doc.addPage();
+              cursorX = 0;
+            }
+
+            // If it was a forced break from previous Wide item, cursorX is huge, so reset
+            if (cursorX > pgW) {
+              doc.addPage();
+              cursorX = 0;
+            }
+
+            doc.addImage(m.data, 'JPEG', cursorX, 0, renderW, renderH);
+            cursorX += renderW + GUTTER;
           }
-
-          // Check if fits on current line/page
-          // Relaxed check: allow small overflow or just use exact math
-          if (cursorX + renderW > pgW + 5) { // +5 tolerance
-            doc.addPage();
-            cursorX = 0;
-          }
-
-          // Draw
-          doc.addImage(m.data, 'JPEG', cursorX, 0, renderW, renderH);
-
-          // Advance cursor safely
-          cursorX += renderW + GUTTER;
         });
       }
 
